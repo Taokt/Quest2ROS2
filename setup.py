@@ -26,6 +26,11 @@ setup(
             'ros2quest = py01_topic.ros2quest:main',
             'demo03_testq2r_str_py = py01_topic.demo03_testq2r_str_py:main',
             'demo04_testq2r_sub_py = py01_topic.demo04_testq2r_sub_py:main',
+            'set_target_point = py01_topic.set_target_point:main',
+            'go_to_xyz = py01_topic.go_to_xyz:main',
+            'send_goal_model = py01_topic.send_goal_model:main',
+            'Q2R_control_goal_py = py01_topic.Q2R_control_goal_py:main',
+            'send_goal = py01_topic.send_goal:main'
         ],
     },
 )

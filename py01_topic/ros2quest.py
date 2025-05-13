@@ -79,8 +79,7 @@ class ros2quest:
     def ovr2ros_right_hand_twist_callback(self, data):
         self.right_hand_twist = data
 
-
-
+        
 
         self.node.get_logger().info(f"[Twist] linear.x: {data.linear.x}")
         self.node.get_logger().info(f"[Twist] linear.y: {data.linear.y}")
