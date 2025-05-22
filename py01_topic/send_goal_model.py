@@ -111,24 +111,24 @@ class MoveArmClient(Node):
         pos_const.constraint_region = bv
         pos_const.weight = 1.0
 
-        # 姿态约束
-        ori_const = OrientationConstraint()
-        ori_const.header.frame_id = self.frame_id 
-        ori_const.link_name = self.link_name
-        ori_const.orientation.x = 0.0
-        ori_const.orientation.y = 0.0
-        ori_const.orientation.z = 0.0
-        ori_const.orientation.w = 1.0
-        ori_const.absolute_x_axis_tolerance = 0.5
-        ori_const.absolute_y_axis_tolerance = 0.5
-        ori_const.absolute_z_axis_tolerance = 0.5
-        ori_const.weight = 1.0
+        # # 姿态约束
+        # ori_const = OrientationConstraint()
+        # ori_const.header.frame_id = self.frame_id 
+        # ori_const.link_name = self.link_name
+        # ori_const.orientation.x = 0.0
+        # ori_const.orientation.y = 0.0
+        # ori_const.orientation.z = 0.0
+        # ori_const.orientation.w = 1.0
+        # ori_const.absolute_x_axis_tolerance = 0.5
+        # ori_const.absolute_y_axis_tolerance = 0.5
+        # ori_const.absolute_z_axis_tolerance = 0.5
+        # ori_const.weight = 1.0
 
 
         # combined constraint
         constraint = Constraints()
         constraint.position_constraints.append(pos_const)
-        constraint.orientation_constraints.append(ori_const)
+        # constraint.orientation_constraints.append(ori_const)
         goal_msg.request.goal_constraints.append(constraint)
 
         # 设置规划选项：plan_only=False 表示规划后执行

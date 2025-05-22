@@ -30,7 +30,8 @@ setup(
             'go_to_xyz = py01_topic.go_to_xyz:main',
             'send_goal_model = py01_topic.send_goal_model:main',
             'Q2R_control_goal_py = py01_topic.Q2R_control_goal_py:main',
-            'send_goal = py01_topic.send_goal:main'
+            'send_goal = py01_topic.send_goal:main',
+            'fk_client_py = py01_topic.fk_client_py:main'
         ],
     },
 )
