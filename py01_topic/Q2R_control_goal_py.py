@@ -6,11 +6,13 @@ from moveit_msgs.srv import GetCartesianPath
 from moveit_msgs.action import ExecuteTrajectory
 from rclpy.action import ActionClient
 from visualization_msgs.msg import Marker
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose,Quaternion
 from quest2ros.msg import OVR2ROSInputs
 from moveit_msgs.srv import GetPositionFK
 from sensor_msgs.msg import JointState
 import math
+import numpy as np
+import tf_transformations
 
 
 
@@ -21,7 +23,7 @@ class RightHandFollower(Node):
         self.busy = False
         topic = '/q2r_right_hand_pose'
         self.group_name = 'right_arm'
-        self.link_name = 'right_arm_link_7'
+        self.link_name = 'right_arm_link_ee'
         # self.frame_id = 'right_arm_link_0'
         self.frame_id = 'bh_robot_base'
         # self.frame_id = 'rotated_base'
@@ -52,7 +54,6 @@ class RightHandFollower(Node):
         self.cartesian_client = self.create_client(GetCartesianPath, '/bh_robot/compute_cartesian_path')
         self.execute_client = ActionClient(self, ExecuteTrajectory, '/bh_robot/execute_trajectory')
         self.marker_pub = self.create_publisher(Marker, '/visualization_marker', 10)
-
         self.fk_client = self.create_client(GetPositionFK, '/bh_robot/compute_fk')
 
         # 创建订阅器
@@ -96,15 +97,15 @@ class RightHandFollower(Node):
         """绕 Z 轴顺时针旋转 PoseStamped 的 position 和 orientation"""
         theta = math.radians(angle_deg)
 
-        # 旋转位置
-        x = pose_stamped.pose.position.x
-        y = pose_stamped.pose.position.y
+        # # 旋转位置
+        # x = pose_stamped.pose.position.x
+        # y = pose_stamped.pose.position.y
 
-        self.get_logger().info(f"[Before Rotation] Position: x={x:.3f}, y={y:.3f}, z={pose_stamped.pose.position.z:.3f}")
+        # self.get_logger().info(f"[Before Rotation] Position: x={x:.3f}, y={y:.3f}, z={pose_stamped.pose.position.z:.3f}")
 
-        pose_stamped.pose.position.x = x * math.cos(theta) + y * math.sin(theta)
-        pose_stamped.pose.position.y = -x * math.sin(theta) + y * math.cos(theta)
-        self.get_logger().info(f"[After Rotation] Position: x={pose_stamped.pose.position.x:.3f}, y={pose_stamped.pose.position.y:.3f}, z={pose_stamped.pose.position.z:.3f}")
+        # pose_stamped.pose.position.x = x * math.cos(theta) + y * math.sin(theta)
+        # pose_stamped.pose.position.y = -x * math.sin(theta) + y * math.cos(theta)
+        # self.get_logger().info(f"[After Rotation] Position: x={pose_stamped.pose.position.x:.3f}, y={pose_stamped.pose.position.y:.3f}, z={pose_stamped.pose.position.z:.3f}")
 
 
         # 构造旋转四元数
@@ -130,10 +131,14 @@ class RightHandFollower(Node):
 
         return pose_stamped
 
+
+
+
     def pose_callback(self, pose_stamped):
         self.last_pose_stamped_always = pose_stamped
 
-        # pose_stamped = self.rotate_pose_around_z_axis(pose_stamped, 45)  # 顺时针旋转 45 度
+        # rotated_pose = self.rotate_pose_around_z_axis(pose_stamped, 45)  # 顺时针旋转 45 度
+        
 
         # if self.last_target_pose and not self.is_pose_significantly_different(pose_stamped.pose, self.last_target_pose):
         #     self.get_logger().warn("Pose is not significantly different. Skipping.")
@@ -183,6 +188,7 @@ class RightHandFollower(Node):
 
          # 设置方向
         orientation = pose_stamped.pose.orientation
+        # orientation = rotated_pose.pose.orientation
         if orientation.x == 0.0 and orientation.y == 0.0 and orientation.z == 0.0 and orientation.w == 0.0:
             target_pose.orientation.w = 1.0
         else:
@@ -192,20 +198,78 @@ class RightHandFollower(Node):
                                f"y={target_pose.position.y:.3f}, z={target_pose.position.z:.3f}")
 
         # 可视化 Marker
+        # marker = Marker()
+        # marker.header.frame_id = self.frame_id
+        # marker.header.stamp = self.get_clock().now().to_msg()
+        # marker.ns = "target_pose"
+        # marker.id = 0
+        # marker.type = Marker.SPHERE
+        # marker.action = Marker.ADD
+        # marker.pose = target_pose
+        # marker.scale.x = marker.scale.y = marker.scale.z = 0.1
+        # marker.color.r = 1.0
+        # marker.color.g = 0.0
+        # marker.color.b = 0.0
+        # marker.color.a = 1.0
+        # self.marker_pub.publish(marker)
+
+        # 可视化 Marker（使用箭头表示姿态方向）
+
+
+        rot = tf_transformations.quaternion_matrix([
+            pose_stamped.pose.orientation.x,
+            pose_stamped.pose.orientation.y,
+            pose_stamped.pose.orientation.z,
+            pose_stamped.pose.orientation.w
+        ])[:3,:3]
+
+        z_vec = rot.dot([0,0,1])
+        x_axis = z_vec / np.linalg.norm(z_vec)
+
+        # 3. 构造与 x_axis 不共线的 up 向量
+        up = np.array([0.0, 0.0, 1.0]) if abs(x_axis[2]) < 0.9 else np.array([0.0, 1.0, 0.0])
+        y_axis = np.cross(up, x_axis)
+        y_axis /= np.linalg.norm(y_axis)
+        z_axis = np.cross(x_axis, y_axis)
+
+        # 4. 构造朝向 z_vec 的旋转矩阵（x_axis 对齐 z_vec）
+        rot_matrix = np.eye(4)
+        rot_matrix[:3, 0] = x_axis
+        rot_matrix[:3, 1] = y_axis
+        rot_matrix[:3, 2] = z_axis
+
+        # 5. 转为四元数
+        q = tf_transformations.quaternion_from_matrix(rot_matrix)
+        quat = Quaternion()
+        quat.x, quat.y, quat.z, quat.w = q
+
+  
         marker = Marker()
         marker.header.frame_id = self.frame_id
         marker.header.stamp = self.get_clock().now().to_msg()
         marker.ns = "target_pose"
         marker.id = 0
-        marker.type = Marker.SPHERE
+        marker.type = Marker.ARROW  
         marker.action = Marker.ADD
-        marker.pose = target_pose
-        marker.scale.x = marker.scale.y = marker.scale.z = 0.1
+        marker.pose.position = target_pose.position  # 包含 position + orientation
+
+        # 旧版单箭头代码已删除
+        marker.pose.orientation = quat
+
+
+
+        # 尺寸设置（箭头长度=0.2，箭身宽=0.04，箭头宽=0.04）
+        marker.scale.x = 0.2  # 箭头指向方向（length）
+        marker.scale.y = 0.04  # 箭头宽度（shaft width）
+        marker.scale.z = 0.04  # 箭头高度（head width）
+
+        # 红色透明箭头
         marker.color.r = 1.0
         marker.color.g = 0.0
         marker.color.b = 0.0
         marker.color.a = 1.0
         self.marker_pub.publish(marker)
+
 
         if self.busy:
             self.get_logger().warn("Moving not finished, ignore request")
@@ -238,6 +302,64 @@ class RightHandFollower(Node):
         future.add_done_callback(self.cartesian_response_callback)
 
     
+    # def publish_pose_axes(self, pose: Pose, frame_id: str):
+    #     """发布一个姿态坐标系（X红 Y绿 Z蓝）"""
+    #     colors = {
+    #         'x': (1.0, 0.0, 0.0),
+    #         'y': (0.0, 1.0, 0.0),
+    #         'z': (0.0, 0.0, 1.0),
+    #     }
+
+    #     axes = {
+    #         'x': (1.0, 0.0, 0.0),
+    #         'y': (0.0, 1.0, 0.0),
+    #         'z': (0.0, 0.0, 1.0),
+    #     }
+
+    #     rot = tf_transformations.quaternion_matrix([
+    #         pose.orientation.x,
+    #         pose.orientation.y,
+    #         pose.orientation.z,
+    #         pose.orientation.w
+    #     ])
+
+    #     for i, axis in enumerate(['x', 'y', 'z']):
+    #         vec = axes[axis]
+    #         rot_vec = rot[:3, :3].dot(vec)
+
+    #         marker = Marker()
+    #         marker.header.frame_id = frame_id
+    #         marker.header.stamp = self.get_clock().now().to_msg()
+    #         marker.ns = f"pose_axes"
+    #         marker.id = i
+    #         marker.type = Marker.ARROW
+    #         marker.action = Marker.ADD
+
+    #         start = geometry_msgs.msg.Point()
+    #         start.x = pose.position.x
+    #         start.y = pose.position.y
+    #         start.z = pose.position.z
+
+    #         end = geometry_msgs.msg.Point()
+    #         end.x = pose.position.x + 0.1 * rot_vec[0]
+    #         end.y = pose.position.y + 0.1 * rot_vec[1]
+    #         end.z = pose.position.z + 0.1 * rot_vec[2]
+
+    #         marker.points.append(start)
+    #         marker.points.append(end)
+
+    #         marker.scale.x = 0.01
+    #         marker.scale.y = 0.02
+    #         marker.scale.z = 0.02
+
+    #         r, g, b = colors[axis]
+    #         marker.color.r = r
+    #         marker.color.g = g
+    #         marker.color.b = b
+    #         marker.color.a = 1.0
+
+    #         self.marker_pub.publish(marker)
+
 
     def is_pose_significantly_different(self, pose1, pose2, threshold=0.1):
         dx = abs(pose1.position.x - pose2.position.x)
