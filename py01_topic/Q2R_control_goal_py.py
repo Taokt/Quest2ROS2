@@ -13,6 +13,7 @@ from sensor_msgs.msg import JointState
 import math
 import numpy as np
 import tf_transformations
+import time
 
 
 
@@ -28,7 +29,9 @@ class RightHandFollower(Node):
         self.frame_id = 'bh_robot_base'
         # self.frame_id = 'rotated_base'
         self.last_target_pose = None
+        self.last_executed_target_pose = None
         
+
         
 
         # topic = '/q2r_left_hand_pose'
@@ -36,8 +39,10 @@ class RightHandFollower(Node):
         # self.link_name = 'left_arm_link_7'
         # self.frame_id = 'left_arm_link_0'
 
-        self.initial_pose = None         # 初始点 (-0.6, 0.05, 0.285)
+        self.initial_pose = None         # 初始点 
         self.first_received_position = None  # 第一次收到的位置（用于计算偏移）
+        self.joint_state_stamp = None
+
 
         self.base_pose = None
         self.update_base_pose = False
@@ -46,8 +51,8 @@ class RightHandFollower(Node):
         self.refe_pos_y = 0.43
         self.refe_pos_z = 0.76
         self.refe_pos_w = 1.0
-        self.current_joint_state = None
         self.allow_pose_update = True
+        self.joint_state_updated = True
 
         
         # 创建客户端
@@ -64,6 +69,14 @@ class RightHandFollower(Node):
             10
         )
 
+
+        self.create_subscription(
+            JointState,
+            "/bh_robot/joint_states",
+            self.joint_state_callback,
+            10
+        )
+
         self.input_subscription = self.create_subscription(
             OVR2ROSInputs,
             "/q2r_right_hand_inputs",
@@ -71,13 +84,6 @@ class RightHandFollower(Node):
             10
         )
 
-
-        self.joint_state_subscription = self.create_subscription(
-            JointState,
-            '/bh_robot/joint_states',
-            self.joint_state_callback,
-            10
-        )
         
         self.get_logger().info('waiting for service /bh_robot/compute_cartesian_path...')
         while not self.cartesian_client.wait_for_service(timeout_sec=2.0):
@@ -89,8 +95,57 @@ class RightHandFollower(Node):
 
         self.get_logger().info('ready to receive /q2r_right_hand_pose target position')
 
-    def joint_state_callback(self, msg: JointState):
+        # 阻塞等待 joint state 和 FK 服务，然后设置 initial_pose
+        self.get_logger().info("等待 joint state 和 FK 服务以设置初始位置...")
+
+        while rclpy.ok():
+            # 等到关节状态到位
+            if self.current_joint_state is None:
+                rclpy.spin_once(self, timeout_sec=0.1)
+                continue
+
+            # 等到 FK 服务可用
+            if not self.fk_client.wait_for_service(timeout_sec=1.0):
+                self.get_logger().warn("FK 服务尚未就绪，继续等待...")
+                continue
+
+            # 构造 FK 请求
+            fk_request = GetPositionFK.Request()
+            fk_request.header.frame_id = self.frame_id
+            fk_request.fk_link_names = [self.link_name]
+            fk_request.robot_state.joint_state = self.current_joint_state
+
+            self.get_logger().info("发送 FK 请求以获取当前末端位姿...")
+            future = self.fk_client.call_async(fk_request)
+
+            # 等待 FK 返回
+            while not future.done():
+                rclpy.spin_once(self, timeout_sec=0.1)
+
+            try:
+                result = future.result()
+                if not result.pose_stamped:
+                    self.get_logger().error("FK 返回结果为空")
+                    break
+
+                fk_pose = result.pose_stamped[0].pose
+                self.initial_pose = fk_pose
+                self.initial_pose_for_reset = fk_pose
+                self.get_logger().info("✅ 成功设置 initial_pose 为当前 FK 位置")
+                break
+            except Exception as e:
+                self.get_logger().error(f"FK 调用失败: {e}")
+                break
+
+
+
+    def joint_state_callback(self, msg):
         self.current_joint_state = msg
+        self.joint_state_updated = True
+        self.joint_state_stamp = msg.header.stamp
+        self.get_logger().info("✅ joint_state updated")
+        
+
     
 
     def rotate_pose_around_z_axis(self, pose_stamped: PoseStamped, angle_deg: float):
@@ -154,18 +209,22 @@ class RightHandFollower(Node):
             self.get_logger().info("当前禁止更新 target pose，忽略本次 pose")
             return
 
+        if self.initial_pose is None:
+            self.get_logger().warn("Initial pose not ready yet, skipping this pose input.")
+            return
+        
          # 初始化固定参考初始点
         self.last_pose_stamped = pose_stamped  # 记录最近的 pose
-        if self.initial_pose is None:
-            self.initial_pose = Pose()
-            # self.initial_pose.position.x = -0.6
-            # self.initial_pose.position.y = 0.05
-            # self.initial_pose.position.z = 0.285
-            self.initial_pose.position.x = self.refe_pos_x
-            self.initial_pose.position.y = self.refe_pos_y
-            self.initial_pose.position.z = self.refe_pos_z
-            self.initial_pose.orientation.w = self.refe_pos_w  # 默认单位四元数
-            self.initial_pose_for_reset = self.initial_pose
+        # if self.initial_pose is None:
+        #     self.initial_pose = Pose()
+        #     # self.initial_pose.position.x = -0.6
+        #     # self.initial_pose.position.y = 0.05
+        #     # self.initial_pose.position.z = 0.285
+        #     self.initial_pose.position.x = self.refe_pos_x
+        #     self.initial_pose.position.y = self.refe_pos_y
+        #     self.initial_pose.position.z = self.refe_pos_z
+        #     self.initial_pose.orientation.w = self.refe_pos_w  # 默认单位四元数
+        #     self.initial_pose_for_reset = self.initial_pose
 
         # 记录第一次收到的目标位姿
         if self.first_received_position is None:
@@ -252,11 +311,7 @@ class RightHandFollower(Node):
         marker.type = Marker.ARROW  
         marker.action = Marker.ADD
         marker.pose.position = target_pose.position  # 包含 position + orientation
-
-        # 旧版单箭头代码已删除
         marker.pose.orientation = quat
-
-
 
         # 尺寸设置（箭头长度=0.2，箭身宽=0.04，箭头宽=0.04）
         marker.scale.x = 0.2  # 箭头指向方向（length）
@@ -271,6 +326,12 @@ class RightHandFollower(Node):
         self.marker_pub.publish(marker)
 
 
+
+        # ✅ 新增：若当前目标和上次成功执行位置相差很小，则跳过
+        if self.last_executed_target_pose and not self.is_pose_significantly_different(target_pose, self.last_executed_target_pose, threshold=0.02):
+            self.get_logger().debug("目标位置与上次执行几乎一致，跳过执行")
+            return
+
         if self.busy:
             self.get_logger().warn("Moving not finished, ignore request")
             return
@@ -282,6 +343,47 @@ class RightHandFollower(Node):
         #     self.busy = False
         #     return  # 忽略微小位姿变化
 
+        # # 等待一帧新的 joint_state 到来（不是 None，而是“新的一帧”）
+        # self.joint_state_updated = False
+        # start_time = time.time()
+        # self.busy = True
+
+        # while not self.joint_state_updated:
+        #     time.sleep(0.01)  # 不阻塞主线程，不死锁
+        #     if time.time() - start_time > 2.0:
+        #         self.get_logger().error("等待 joint_state 更新超时，跳过本次规划")
+        #         self.busy = False
+        #         return
+
+
+        # # 获取 pose 消息的时间戳
+        # pose_stamp = pose_stamped.header.stamp
+
+
+        # # 判断 joint_state 是否是更新的（时间戳晚于 pose）
+        # if self.joint_state_stamp.sec < pose_stamp.sec or \
+        # (self.joint_state_stamp.sec == pose_stamp.sec and self.joint_state_stamp.nanosec < pose_stamp.nanosec):
+        #     self.get_logger().warn("⚠️ joint_state 尚未更新到当前 pose 时间点，跳过")
+        #     self.busy = False
+        #     return
+
+        # # 构造多个 target pose
+        # pose1 = Pose()
+        # pose1.position.x = -0.8
+        # pose1.position.y = 0.43
+        # pose1.position.z = 0.76
+        # pose1.orientation.w = 1.0
+
+
+        # pose2 = Pose()
+        # pose2.position.x = -0.9
+        # pose2.position.y = 0.43
+        # pose2.position.z = 0.76
+        # pose2.orientation.w = 1.0
+        
+
+
+
         # 构建路径请求
         request = GetCartesianPath.Request()
         request.group_name = self.group_name
@@ -291,6 +393,21 @@ class RightHandFollower(Node):
         request.max_step = 0.01
         request.jump_threshold = 0.0
         request.avoid_collisions = True
+        request.start_state.joint_state = self.current_joint_state
+        request.start_state.is_diff = True
+
+        # # 添加多个路径点
+        # for p in [pose1, pose2]:
+        #     request.waypoints.append(p)
+
+        # self.get_logger().info("📦 即将发送的 Cartesian Path 请求参数：")
+        # self.get_logger().info(f"📌 规划组: {request.group_name}")
+        # self.get_logger().info(f"📌 起点关节名: {request.start_state.joint_state.name}")
+        # self.get_logger().info(f"📌 起点关节角度: {[round(p, 4) for p in request.start_state.joint_state.position]}")
+        # self.get_logger().info(f"📌 路径点数: {len(request.waypoints)}")
+
+
+        
 
         self.get_logger().info("Calling cartesian_server...")
         if not self.cartesian_client.wait_for_service(timeout_sec=5.0):
@@ -298,70 +415,54 @@ class RightHandFollower(Node):
             self.busy = False
             return
 
+        self.last_target_pose = target_pose  # ⚠️ 必须更新这次的目标位姿
+
         future = self.cartesian_client.call_async(request)
         future.add_done_callback(self.cartesian_response_callback)
 
-    
-    # def publish_pose_axes(self, pose: Pose, frame_id: str):
-    #     """发布一个姿态坐标系（X红 Y绿 Z蓝）"""
-    #     colors = {
-    #         'x': (1.0, 0.0, 0.0),
-    #         'y': (0.0, 1.0, 0.0),
-    #         'z': (0.0, 0.0, 1.0),
-    #     }
 
-    #     axes = {
-    #         'x': (1.0, 0.0, 0.0),
-    #         'y': (0.0, 1.0, 0.0),
-    #         'z': (0.0, 0.0, 1.0),
-    #     }
+    def try_initialize_from_fk(self):
+        if self.fk_initialized:
+            return
 
-    #     rot = tf_transformations.quaternion_matrix([
-    #         pose.orientation.x,
-    #         pose.orientation.y,
-    #         pose.orientation.z,
-    #         pose.orientation.w
-    #     ])
+        if self.current_joint_state is None:
+            self.get_logger().warn("Waiting for joint state to initialize initial_pose...")
+            return
 
-    #     for i, axis in enumerate(['x', 'y', 'z']):
-    #         vec = axes[axis]
-    #         rot_vec = rot[:3, :3].dot(vec)
+        if not self.fk_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().warn("FK service not ready yet")
+            return
 
-    #         marker = Marker()
-    #         marker.header.frame_id = frame_id
-    #         marker.header.stamp = self.get_clock().now().to_msg()
-    #         marker.ns = f"pose_axes"
-    #         marker.id = i
-    #         marker.type = Marker.ARROW
-    #         marker.action = Marker.ADD
+        self.get_logger().info("Sending FK request to initialize initial_pose...")
 
-    #         start = geometry_msgs.msg.Point()
-    #         start.x = pose.position.x
-    #         start.y = pose.position.y
-    #         start.z = pose.position.z
+        fk_request = GetPositionFK.Request()
+        fk_request.header.frame_id = self.frame_id
+        fk_request.fk_link_names = [self.link_name]
+        fk_request.robot_state.joint_state = self.current_joint_state
 
-    #         end = geometry_msgs.msg.Point()
-    #         end.x = pose.position.x + 0.1 * rot_vec[0]
-    #         end.y = pose.position.y + 0.1 * rot_vec[1]
-    #         end.z = pose.position.z + 0.1 * rot_vec[2]
+        future = self.fk_client.call_async(fk_request)
 
-    #         marker.points.append(start)
-    #         marker.points.append(end)
+        def fk_callback(fut):
+            if fut.result() is None:
+                self.get_logger().error(f"Initial FK failed: {fut.exception()}")
+                return
 
-    #         marker.scale.x = 0.01
-    #         marker.scale.y = 0.02
-    #         marker.scale.z = 0.02
+            result = fut.result()
+            if not result.pose_stamped:
+                self.get_logger().error("Initial FK returned empty result")
+                return
 
-    #         r, g, b = colors[axis]
-    #         marker.color.r = r
-    #         marker.color.g = g
-    #         marker.color.b = b
-    #         marker.color.a = 1.0
+            fk_pose = result.pose_stamped[0].pose
+            self.initial_pose = fk_pose
+            self.initial_pose_for_reset = fk_pose
+            self.get_logger().info("✅ Automatically set initial_pose from current FK pose")
 
-    #         self.marker_pub.publish(marker)
+            self.fk_initialized = True
+
+        future.add_done_callback(fk_callback)
 
 
-    def is_pose_significantly_different(self, pose1, pose2, threshold=0.1):
+    def is_pose_significantly_different(self, pose1, pose2, threshold=0.08):
         dx = abs(pose1.position.x - pose2.position.x)
         dy = abs(pose1.position.y - pose2.position.y)
         dz = abs(pose1.position.z - pose2.position.z)
@@ -545,6 +646,7 @@ class RightHandFollower(Node):
             self.get_logger().info(f"执行完成，返回码: {result.error_code.val}")
             # update position_for compared after successfully executed
             # self.last_target_pose = self.last_pose_stamped.pose
+            self.last_executed_target_pose = self.last_target_pose
         except Exception as e:
             self.get_logger().error(f"获取执行结果失败: {e}")
 
@@ -837,4 +939,3 @@ if __name__ == '__main__':
 
 # if __name__ == '__main__':
 #     main()
-
