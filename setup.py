@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'py01_topic'
+package_name = 'q2r_bringup'
 
 setup(
     name=package_name,
@@ -21,17 +21,16 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'demo01_talker_str_py = py01_topic.demo01_talker_str_py:main',
-            'demo02_listener_str_py = py01_topic.demo02_listener_str_py:main',
-            'ros2quest = py01_topic.ros2quest:main',
-            'demo03_testq2r_str_py = py01_topic.demo03_testq2r_str_py:main',
-            'demo04_testq2r_sub_py = py01_topic.demo04_testq2r_sub_py:main',
-            'set_target_point = py01_topic.set_target_point:main',
-            'go_to_xyz = py01_topic.go_to_xyz:main',
-            'send_goal_model = py01_topic.send_goal_model:main',
-            'Q2R_control_goal_py = py01_topic.Q2R_control_goal_py:main',
-            'send_goal = py01_topic.send_goal:main',
-            'fk_client_py = py01_topic.fk_client_py:main'
+            'ros2quest = q2r_bringup.ros2quest:main',
+            'SImulationInpt = q2r_bringup.SImulationInpt:main',
+            'CheckTCPconnection = q2r_bringup.CheckTCPconnection:main',
+            'set_target_point = q2r_bringup.set_target_point:main',
+            'go_to_xyz = q2r_bringup.go_to_xyz:main',
+            'send_goal_model = q2r_bringup.send_goal_model:main',
+            'send_goal = q2r_bringup.send_goal:main',
+            'fk_client = q2r_bringup.fk_client:main',
+            'Q2R_control_goal_left = q2r_bringup.Q2R_control_goal_left:main',
+            'Q2R_control_goal_right = q2r_bringup.Q2R_control_goal_right:main',
         ],
     },
 )

@@ -299,7 +299,7 @@ if __name__ == '__main__':
 #     rclpy.init(args=args)
 
 #     if len(sys.argv) != 5:
-#         print("Usage: ros2 run py01_topic send_cartesian_execute x y z [left|right]")
+#         print("Usage: ros2 run q2r_bringup send_cartesian_execute x y z [left|right]")
 #         return
 
 #     x, y, z = float(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3])
