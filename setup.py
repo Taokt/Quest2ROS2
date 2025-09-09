@@ -31,6 +31,8 @@ setup(
             'fk_client = q2r_bringup.fk_client:main',
             'Q2R_control_goal_left = q2r_bringup.Q2R_control_goal_left:main',
             'Q2R_control_goal_right = q2r_bringup.Q2R_control_goal_right:main',
+            'left_arm_controller = q2r_bringup.left_arm_controller:main',
+            'right_arm_controller = q2r_bringup.right_arm_controller:main',
         ],
     },
 )
