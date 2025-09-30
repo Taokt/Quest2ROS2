@@ -1,7 +1,7 @@
 import rclpy
 from .robot_arm_controller_base import BaseArmController
 
-class LeftArmController(BaseArmController):
+class RightArmController(BaseArmController):
     def __init__(self):
         super().__init__(
             arm_name='right',
@@ -10,7 +10,7 @@ class LeftArmController(BaseArmController):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = LeftArmController()
+    node = RightArmController()
     rclpy.spin(node)
     rclpy.shutdown()
 
