@@ -337,38 +337,67 @@ class BaseArmController(Node):
     def _inputs_callback(self, msg: OVR2ROSInputs):
         """
         Quest 3 控制器输入消息的回调函数。
-        通过按钮按下切换机器人移动并重置初始姿态。
-        """
-        # 如果按钮被按下，并且机器人当前正在移动...
-        if msg.button_lower:
-            if self.allow_pose_update: # 仅在状态从 True 变为 False 时触发
-                self.allow_pose_update = False
-                self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 已按下 Button_lower：机器人移动已暂停。")
-                
-                robot_pos, robot_ori = self._get_robot_current_pose()
-                if robot_pos is not None and robot_ori is not None:
-                    self.initial_position = robot_pos
-                    self.initial_orientation = robot_ori
-                    self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 机器人初始姿态已重置为当前位置。")
-                else:
-                    self.get_logger().warn(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 无法获取机器人当前姿态以重置初始姿态。")
-                
-                # 重置移动平均历史
-                self.position_history.clear()
-                self.orientation_history.clear()
-
-        # 如果按钮被释放，并且机器人当前是暂停状态...
-        else:
-            if not self.allow_pose_update:
-                self.allow_pose_update = True
-                self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 已释放 Button_lower：机器人移动已恢复。")
         
-        # 新增: 如果按下上部按钮，切换抓手状态
-        if msg.button_upper:
-            # 仅在按下按钮时触发一次
-            if not hasattr(self, '_button_upper_pressed') or not self._button_upper_pressed:
-                self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 检测到 Button_upper 按下。切换抓手状态...")
-                self._toggle_gripper()
-            self._button_upper_pressed = True
-        else:
-            self._button_upper_pressed = False
+        上部按钮 (button_upper): 切换抓手开/合。
+        下部按钮 (button_lower): 切换位置命令发送的启用/禁用。
+        """
+        # 确保存在用于实现单次按下切换的状态变量
+        if not hasattr(self, '_button_upper_pressed_state'):
+            self._button_upper_pressed_state = False
+        if not hasattr(self, '_button_lower_pressed_state'):
+            self._button_lower_pressed_state = False
+
+        # ----------------------------------------------------------------------
+        # 1. 保留上部按钮功能: 切换抓手 (Gripper Toggle)
+        # ----------------------------------------------------------------------
+        if msg.button_upper and not self._button_upper_pressed_state:
+            # 仅在从 '未按下' 状态转换为 '按下' 状态时执行
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 检测到 Button_upper 按下。切换抓手状态...")
+            self._toggle_gripper()
+            
+        # 更新上部按钮的按下状态
+        self._button_upper_pressed_state = msg.button_upper
+
+       # ----------------------------------------------------------------------
+        # 2. 修改下部按钮功能: 启用/禁用位置命令发送 + 重置锚点
+        # ----------------------------------------------------------------------
+        if msg.button_lower and not self._button_lower_pressed_state:
+            # 仅在从 '未按下' 状态转换为 '按下' 状态时执行
+            self.allow_pose_update = not self.allow_pose_update
+            
+            state_msg = "已启用 (发送姿态)" if self.allow_pose_update else "已禁用 (保持不动)"
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 已按下 Button_lower: 位置命令发送已 **{state_msg}**。")
+            
+            # 无论启用还是禁用，我们都需要重新建立“锚点”
+            # 重新获取机器人当前姿态作为新的初始姿态 (initial_position/orientation)
+            robot_pos, robot_ori = self._get_robot_current_pose()
+            
+            # 重置 Quest 控制器姿态锚点 (first_received_quest_position/orientation)
+            # 使用上一次平滑或原始接收到的 Quest 姿态作为新的偏移量起点
+            if self.last_pose_stamped_always is not None:
+                # 为了确保平稳启动，我们需要像在 _pose_callback 中那样对当前姿态进行平滑
+                # 警告: 直接使用 last_pose_stamped_always 会导致在滤波器未满时启动失败，
+                # 但由于 reset 后滤波器会清空，我们必须等待它再次填满。
+                # 
+                # 更好的做法是：在重置时，如果机器人姿态可用，就重置机器人锚点。
+                # Quest 锚点将在 _pose_callback 中重新建立（initial_orientation == None）。
+                pass # 保持 _pose_callback 中的逻辑，仅重置机器人锚点和滤波器历史。
+
+            if robot_pos is not None and robot_ori is not None:
+                # 将机器人锚点重置为当前的机器人位置
+                self.initial_position = robot_pos
+                self.initial_orientation = robot_ori
+                self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 机器人初始姿态已重置为当前位置 (锚点)。")
+                
+                # 重置 Quest 控制器锚点，以便 _pose_callback 再次捕获 Quest 姿态作为新的零点。
+                # 通过将 initial_orientation 设置为 None 来强制 _pose_callback 重新初始化。
+                self.initial_orientation = None 
+                self.first_received_quest_position = None
+                self.first_received_quest_orientation = None
+
+            # 清空滤波器历史，以防止旧数据影响新的运动。
+            self.position_history.clear()
+            self.orientation_history.clear()
+
+        # 更新下部按钮的按下状态
+        self._button_lower_pressed_state = msg.button_lower
