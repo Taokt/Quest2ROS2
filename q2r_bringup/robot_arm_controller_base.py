@@ -6,48 +6,48 @@ from visualization_msgs.msg import Marker
 from tf2_ros import TransformListener, Buffer
 import numpy as np
 import tf_transformations
-import time # 考虑替换为 rclpy.time 以实现 ROS 感知的时间处理
+import time # Consider replacing with rclpy.time for ROS-aware time handling
 
-# 导入 ROS 2 动作库和抓手动作消息
+# ROS 2 action client and gripper action message
 from rclpy.action import ActionClient
 from control_msgs.action import GripperCommand
 
-# 导入 deque 以实现高效的固定长度队列
+# Deque for efficient fixed-length queues
 from collections import deque
 
 class BaseArmController(Node):
     def __init__(self, arm_name: str, robot_type: str):
         """
-        基于 Quest 3 输入控制机器人手臂的基类。
+        Base class for controlling a robot arm using Quest 3 inputs.
 
-        参数:
-            arm_name (str): 手臂名称（例如：'left'，'right'）。用于日志记录和区分。
-            robot_type (str): 所控制的机器人类型（例如：'kuka'，'franka'，'z1'）。
+        Args:
+            arm_name (str): Arm name, e.g., 'left' or 'right', used for logging and distinction.
+            robot_type (str): Robot type, e.g., 'kuka', 'franka', or 'z1'.
         """
-        # 我们将传递给父类构造函数的节点名称存储起来
+        # Builds a node name string based on arm name and robot type
         node_name_str = f"{arm_name}_{robot_type}_arm_controller"
         super().__init__(node_name_str)
-        self._node_name = node_name_str # 将其存储在此处以供日志/引用
+        self._node_name = node_name_str # store for logging/reference
 
         self.arm_name = arm_name
         self.robot_type = robot_type
 
-        # 根据类型和手臂名称配置机器人特定参数
+        # Configure robot-specific parameters based on type and arm side
         self._configure_robot_params()
 
-        # 用于跟踪的状态变量
+        # State variables for tracking/anchoring
         self.last_pose_stamped_always = None
-        self.initial_orientation = None # 机器人末端执行器的初始方向 (来自 TF)
-        self.initial_position = None    # 机器人末端执行器的初始位置 (来自 TF)
-        self.first_received_quest_position = None # 第一次接收到的 Quest 控制器位置
-        self.first_received_quest_orientation = None # 第一次接收到的 Quest 控制器方向
-        self.current_robot_pose = None  # 机器人末端执行器的当前位置 (来自 TF)
-        self.allow_pose_update = True   # 标志，用于启用/禁用机器人移动 (来自 inputs_callback)
+        self.initial_orientation = None # Initial EEF orientation (from TF)
+        self.initial_position = None    # Initial EEF position (from TF)
+        self.first_received_quest_position = None # First Quest controller position
+        self.first_received_quest_orientation = None # First Quest controller orientation
+        self.current_robot_pose = None  # Current EEF position (from TF)
+        self.allow_pose_update = True   # Enable/disable arm motion (toggled in inputs callback)
 
-        # 抓手状态变量
+        # Gripper state
         self.is_gripper_closed = False
         
-        # 创建订阅器
+        # Subscriptions
         self.pose_subscription = self.create_subscription(
             PoseStamped,
             self.quest_pose_topic,
@@ -64,25 +64,25 @@ class BaseArmController(Node):
         self.marker_pub = self.create_publisher(Marker, '/visualization_marker', 10)
         self.target_pose_publisher = self.create_publisher(PoseStamped, self.robot_target_pose_topic, 10)
 
-        # 初始化 tf2 用于坐标转换
+        # TF2 for frame transforms
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        # 新增: 移动平均滤波器配置
-        self.filter_window_size = 20 # 过滤器窗口大小。可根据需要调整。
+        # Moving-average filter configuration
+        self.filter_window_size = 20 # Window length
         self.position_history = deque(maxlen=self.filter_window_size)
         self.orientation_history = deque(maxlen=self.filter_window_size)
 
-        # 抓手动作客户端
+        # Gripper action client
         self.gripper_action_client = ActionClient(self, GripperCommand, self.gripper_action_topic)
-        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 等待抓手动作服务器: {self.gripper_action_topic}")
+        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Waiting for gripper action server: {self.gripper_action_topic}")
         # self.gripper_action_client.wait_for_server(timeout_sec=5.0)
 
-        self.get_logger().info(f'[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 准备接收 {self.quest_pose_topic} 并发布到 {self.robot_target_pose_topic}')
-        # **修正行：使用存储的 _node_name 而不是 get_name()**
-        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 节点名称: {self._node_name}")
+        self.get_logger().info(f'[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Ready to receive {self.quest_pose_topic} and publish to {self.robot_target_pose_topic}')
+        # Fixed: use the stored _node_name instead of get_name()
+        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Node name: {self._node_name}")
 
-        # 用于记录轨迹的列表 (如果以后需要激活)
+        # Lists for trajectory logging (activate later if needed)
         self.commanded_trajectory_x = []
         self.commanded_trajectory_y = []
         self.commanded_trajectory_z = []
@@ -94,66 +94,85 @@ class BaseArmController(Node):
 
     def _configure_robot_params(self):
         """
-        根据机器人类型和手臂名称配置机器人特定参数（话题、TF 帧）。
+        Configure robot-specific parameters (topics and TF frames) based on the
+        robot type and arm side.
         """
-        topic_name_suffix = "/target_frame" # 目标位姿话题的通用后缀
+        topic_name_suffix = "/target_frame" # Common suffix for target pose command topics
 
         if self.robot_type == "franka":
             self.base_frame_id = "base"
             self.end_effector_link_name = "fr3_hand_tcp"
             controller_prefix = "/cartesian_impedance_controller"
-            self.quest_pose_topic = f"/q2r_{self.arm_name}_hand_pose" # 假设 /q2r_left_hand_pose 或 /q2r_right_hand_pose
+            self.quest_pose_topic = f"/q2r_{self.arm_name}_hand_pose" # e.g., /q2r_left_hand_pose
             self.quest_inputs_topic = f"/q2r_{self.arm_name}_hand_inputs"
             self.robot_target_pose_topic = controller_prefix + topic_name_suffix
-            self.gripper_action_topic = f"/franka_gripper/gripper_action" # 假设 Franka 的抓手动作话题
+            self.gripper_action_topic = f"/franka_gripper/gripper_action" # e.g., /q2r_right_hand_inputs
 
         elif self.robot_type == "kuka":
-            self.base_frame_id = "bh_robot_base" # KUKA 基准帧
+            self.base_frame_id = "bh_robot_base" # TF frames
 
             if self.arm_name == "left":
                 self.end_effector_link_name = "left_arm_link_ee"
                 controller_prefix = "/bh_robot/left_arm_clik_controller"
                 self.quest_pose_topic = "/q2r_left_hand_pose"
                 self.quest_inputs_topic = "/q2r_left_hand_inputs"
-                # 新增: 左臂抓手话题
                 self.gripper_action_topic = "/bh_robot/left_arm_gripper_action_controller/gripper_cmd"
             elif self.arm_name == "right":
-                # 确保您有这些右臂的实际对应项
-                self.end_effector_link_name = "right_arm_link_ee" # 假设右臂末端执行器链接
-                controller_prefix = "/bh_robot/right_arm_clik_controller" # 假设右臂控制器
+                self.end_effector_link_name = "right_arm_link_ee" 
+                controller_prefix = "/bh_robot/right_arm_clik_controller" 
                 self.quest_pose_topic = "/q2r_right_hand_pose"
                 self.quest_inputs_topic = "/q2r_right_hand_inputs"
-                # 新增: 右臂抓手话题
                 self.gripper_action_topic = "/bh_robot/right_arm_gripper_action_controller/gripper_cmd"
             else:
                 self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] KUKA 机器人未知的手臂名称: {self.arm_name}。期望为 'left' 或 'right'。")
-                raise ValueError(f"KUKA 机器人未知的手臂名称: {self.arm_name}。期望为 'left' 或 'right'。")
+                raise ValueError(f"Unknown KUKA arm name: {self.arm_name}. Expected 'left' or 'right'. ")
 
+            # Final command topic for the chosen arm's controller
             self.robot_target_pose_topic = controller_prefix + topic_name_suffix
 
         elif self.robot_type == "z1":
+            # TF frames
             self.base_frame_id = "link00"
             self.end_effector_link_name = "link06"
+            # Controller namespace
             controller_prefix = "/cartesian_impedance_controller"
-            # 假设 Z1 可能没有针对 Quest 输入的独立左右手话题，或者它是一个单臂机器人
-            self.quest_pose_topic = f"/q2r_{self.arm_name}_hand_pose" # 如果 Z1 有一个通用的手部姿态，请调整
-            self.quest_inputs_topic = f"/q2r_{self.arm_name}_hand_inputs"
+            # Quest input topics (built from arm side; adjust if Z1 uses a single-arm setup)
+            self.quest_pose_topic = f"/q2r_{self.arm_name}_hand_pose" # e.g., /q2r_left_hand_pose
+            self.quest_inputs_topic = f"/q2r_{self.arm_name}_hand_inputs" # e.g., /q2r_left_hand_inputs
+            # Command topic and gripper action topic
             self.robot_target_pose_topic = controller_prefix + topic_name_suffix
-            self.gripper_action_topic = "/z1/gripper_action" # 假设 Z1 抓手动作话题
+            self.gripper_action_topic = "/z1/gripper_action"
 
         else:
-            self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 机器人类型未知: {self.robot_type}。支持的类型: 'franka'，'kuka'，'z1'。")
-            raise ValueError(f"机器人类型未知: {self.robot_type}。支持的类型: 'franka'，'kuka'，'z1'。")
-
-        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 配置完成: Base='{self.base_frame_id}'，EE='{self.end_effector_link_name}'，目标话题='{self.robot_target_pose_topic}'")
-
-    def _get_robot_current_pose(self) -> (tuple | Quaternion | None):
+            self.get_logger().error(
+            f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
+            f"Unknown robot type: '{self.robot_type}'. Supported: 'franka', 'kuka', 'z1'."
+        )
+            raise ValueError(f"Unknown robot type: '{self.robot_type}'. Supported: 'franka', 'kuka', 'z1'.")
+        
+        # Summarize the configuration
+        self.get_logger().info(
+            f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
+            f"Configured: base='{self.base_frame_id}', ee='{self.end_effector_link_name}', "
+            f"target_topic='{self.robot_target_pose_topic}'"
+            )
+        
+    def _get_robot_current_pose(self) -> (tuple[tuple[float, float, float], Quaternion]   | tuple[None, None]):
         """
-        尝试查找机器人末端执行器的当前位姿。
-        返回 (x, y, z) 元组和 Quaternion 对象，如果变换失败则返回 None。
+        Query TF2 for the current end-effector (EEF) pose expressed in the base frame.
+
+        Args:
+            timeout_sec (float): Optional timeout for the TF lookup. Defaults to 0.0
+                (non-blocking, return immediately with latest available transform).
+
+        Returns:
+            Tuple[Optional[Tuple[float, float, float]], Optional[Quaternion]]:
+                - position: (x, y, z) in the base frame, or None on failure
+                - orientation: Quaternion in the base frame, or None on failure
         """
         try:
-            # 使用 rclpy.time.Time() 获取最新的可用变换
+            # Look up the latest available transform: base_frame <- end_effector_link
+            # If you want to wait for TF to become available, set a small timeout, e.g., 0.2s.
             transform: TransformStamped = self.tf_buffer.lookup_transform(
                 self.base_frame_id, self.end_effector_link_name, rclpy.time.Time()
             )
@@ -169,10 +188,15 @@ class BaseArmController(Node):
             
     def _apply_moving_average_filter(self, pose_stamped: PoseStamped):
         """
-        将移动平均滤波器应用于 Quest 姿态。
-        返回平滑后的位置和方向。
+        Apply a moving-average filter to the incoming Quest pose.
+
+        Returns:
+            (avg_position, avg_orientation), where:
+            - avg_position: np.ndarray shape (3,) or None while warming up
+            - avg_orientation: np.ndarray shape (4,) [x, y, z, w] or None while warming up
         """
-        # 将新数据添加到历史队列
+
+        # Append latest samples to the fixed-length deques
         self.position_history.append(
             np.array([pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z])
         )
@@ -181,72 +205,92 @@ class BaseArmController(Node):
                       pose_stamped.pose.orientation.z, pose_stamped.pose.orientation.w])
         )
 
-        # 检查队列是否已满
+        # wait until the deques are full
         if len(self.position_history) < self.filter_window_size:
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 正在填充过滤器... ({len(self.position_history)}/{self.filter_window_size})")
-            return None, None # 返回 None 直到队列被填满
-
-        # 计算平均位置
-        avg_position = np.mean(list(self.position_history), axis=0)
+            self.get_logger().info(
+                f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
+                f"Filling filter... ({len(self.position_history)}/{self.filter_window_size})"
+            )            
         
-        # 计算平均方向
-        # 注意: 对四元数进行平均并重新归一化是一种简化方法，但通常适用于小的平移和旋转，可以有效减少抖动。
+            return None, None 
+
+        # Compute mean position over the window
+        avg_position = np.mean(list(self.position_history), axis=0)
+
+        # Compute mean orientation (simple linear average + renormalization)
         avg_orientation = np.mean(list(self.orientation_history), axis=0)
-        avg_orientation /= np.linalg.norm(avg_orientation) # 归一化以确保它是有效的单位四元数
+        norm = np.linalg.norm(avg_orientation)
+        if norm < 1e-9:
+            # Extremely rare: avoid divide-by-zero; signal no orientation yet
+            self.get_logger().warning(
+                f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
+                f"Average quaternion norm ~0; skipping this sample."
+            )
+            return None, None
+        avg_orientation /= norm
 
         return avg_position, avg_orientation
 
 
     def _pose_callback(self, pose_stamped: PoseStamped):
         """
-        接收 Quest 3 手部姿态消息的回调函数。
-        根据机器人初始姿态和 Quest 控制器偏移量计算目标姿态。
+        Callback for Quest hand PoseStamped messages.
+        Computes a robot target pose based on the robot's initial pose (anchor)
+        and the hand's relative motion since that anchor.
         """
+        # Always store the last received pose (for potential re-anchoring)
         self.last_pose_stamped_always = pose_stamped
 
         if not self.allow_pose_update:
             return
 
-        # 1. 从 TF 获取机器人末端执行器的当前姿态
+        # Query the current EEF pose from TF (in the base frame)
         robot_pos, robot_ori = self._get_robot_current_pose()
         if robot_pos is None or robot_ori is None:
-            return # 未能获取机器人姿态，无法继续
+            return # Cannot proceed without a valid TF transform
 
-        # 将当前姿态传递给移动平均滤波器
+        # Smooth the incoming Quest pose with the moving-average filter
         avg_quest_pos_np, avg_quest_ori_np = self._apply_moving_average_filter(pose_stamped)
 
         if avg_quest_pos_np is None:
-            return # 过滤器队列尚未填满
+            return # Filter queue is not yet full
 
-        # 如果尚未设置初始机器人姿态，则进行设置
+        # Set the initial orientation and position if not already set
         if self.initial_orientation is None:
             self.initial_orientation = robot_ori
             self.initial_position = robot_pos
-            self.first_received_quest_position = avg_quest_pos_np # 使用平滑后的数据作为初始锚点
+            self.first_received_quest_position = avg_quest_pos_np # Use smoothed position
             self.first_received_quest_orientation = avg_quest_ori_np
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 初始机器人姿态设置为: 位置={self.initial_position}，方向={self.initial_orientation}")
-            return # 第一次调用只记录，不发布
+            self.get_logger().info(
+                f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
+                f"Anchored robot pose: pos={self.initial_position}, ori={self.initial_orientation}"
+            )
+            return # No movement on the first callback
 
-        # 3. 计算来自 Quest 控制器的平移偏移量 (使用平滑后的数据)
+        # Compute translation offset (smoothed)
         offset_x = avg_quest_pos_np[0] - self.first_received_quest_position[0]
         offset_y = avg_quest_pos_np[1] - self.first_received_quest_position[1]
         offset_z = avg_quest_pos_np[2] - self.first_received_quest_position[2]
 
-        # 4. 使用四元数数学计算旋转偏移量 (使用平滑后的数据)
+        # Compute rotation offset (smoothed) in quaternion space
         q_quest_initial_np = self.first_received_quest_orientation
         q_quest_current_np = avg_quest_ori_np
 
-        # 计算从初始 Quest 方向到当前 Quest 方向的旋转
+        # Relative hand rotation since anchoring: q_rel = q_now * inv(q_initial)
         q_quest_initial_inv = tf_transformations.quaternion_inverse(q_quest_initial_np)
         q_quest_relative_rotation = tf_transformations.quaternion_multiply(q_quest_current_np, q_quest_initial_inv)
 
-        # 将相对 Quest 旋转应用于机器人初始方向
-        q_robot_initial_np = np.array([self.initial_orientation.x, self.initial_orientation.y,
-                                       self.initial_orientation.z, self.initial_orientation.w])
+        # Apply the relative hand rotation to the robot's initial orientation
+        q_robot_initial_np = np.array([self.initial_orientation.x, 
+                                       self.initial_orientation.y,
+                                       self.initial_orientation.z, 
+                                       self.initial_orientation.w])
+        
         q_target_robot_np = tf_transformations.quaternion_multiply(q_quest_relative_rotation, q_robot_initial_np)
-        q_target_robot_np /= np.linalg.norm(q_target_robot_np) # 归一化最终的四元数
+        # Normalize to ensure a valid unit quaternion
+        q_target_robot_np /= np.linalg.norm(q_target_robot_np)
 
-        # 5. 将偏移量应用于机器人初始姿态
+        # Construct the target Pose message
         target_pose = Pose()
         target_pose.position.x = self.initial_position[0] + offset_x
         target_pose.position.y = self.initial_position[1] + offset_y
@@ -258,7 +302,7 @@ class BaseArmController(Node):
         target_pose.orientation.z = q_target_robot_np[2]
         target_pose.orientation.w = q_target_robot_np[3]
 
-        # 6. 发布用于可视化的 Marker (可选)
+        # (Optional) Publish a visualization marker to RViz
         rot_matrix_for_marker = tf_transformations.quaternion_matrix(q_quest_current_np)[:3,:3]
         z_vec_marker = rot_matrix_for_marker.dot([0,0,1])
         x_axis_marker = z_vec_marker / np.linalg.norm(z_vec_marker)
@@ -300,104 +344,91 @@ class BaseArmController(Node):
         marker.color.a = 1.0
         self.marker_pub.publish(marker)
 
-        # 7. 将最终目标姿态发布到机器人
+        # Publish the final target pose to the robot controller
         target_pose_stamped = PoseStamped()
         target_pose_stamped.header.frame_id = self.base_frame_id
         target_pose_stamped.header.stamp = self.get_clock().now().to_msg()
         target_pose_stamped.pose = target_pose
         self.target_pose_publisher.publish(target_pose_stamped)
         self.last_executed_target_pose = target_pose
-        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] ✅ 已发布新的目标姿态。")
+        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Published new target pose.")
     
     def _toggle_gripper(self):
         """
-        根据当前状态，发送动作目标以打开或关闭抓手。
+        Toggle the gripper: send an action goal to open or close it depending on
+        the current state. Updates internal state after the action completes.
         """
         if not self.gripper_action_client.wait_for_server(timeout_sec=1.0):
-            self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 抓手动作服务器不可用。")
+            self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Gripper action server not available.")
             return
 
         goal_msg = GripperCommand.Goal()
 
         if self.is_gripper_closed:
-            # 打开抓手
-            goal_msg.command.position = 0.0 # 0.0 代表完全打开
-            goal_msg.command.max_effort = 5.0 # 最大努力值不应为 0
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 正在发送目标以打开抓手...")
+            goal_msg.command.position = 0.0 # 0.0 Fully open
+            goal_msg.command.max_effort = 5.0 
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Sending goal to open gripper...")
         else:
-            # 关闭抓手
-            goal_msg.command.position = 0.05 # 0.05 代表完全关闭 (Robotiq Hand-E 典型值)
-            goal_msg.command.max_effort = 5.0 # 设置为 10.0 以确保关闭
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 正在发送目标以关闭抓手...")
+            goal_msg.command.position = 0.05 # 0.05 Fully closed
+            goal_msg.command.max_effort = 5.0 
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Sending goal to close gripper...")
 
-        # 发送目标并更新抓手状态
+        # Send goal and update state
         self.gripper_action_client.send_goal_async(goal_msg)
         self.is_gripper_closed = not self.is_gripper_closed
 
     def _inputs_callback(self, msg: OVR2ROSInputs):
         """
-        Quest 3 控制器输入消息的回调函数。
-        
-        上部按钮 (button_upper): 切换抓手开/合。
-        下部按钮 (button_lower): 切换位置命令发送的启用/禁用。
+        Callback for Quest 3 controller inputs.
+
+        - Upper button (button_upper): toggle gripper open/close.
+        - Lower button (button_lower): toggle pose streaming on/off and recenter anchors.
         """
-        # 确保存在用于实现单次按下切换的状态变量
+        # Ensure edge-detection flags exist (one action per press)
         if not hasattr(self, '_button_upper_pressed_state'):
             self._button_upper_pressed_state = False
         if not hasattr(self, '_button_lower_pressed_state'):
             self._button_lower_pressed_state = False
 
-        # ----------------------------------------------------------------------
-        # 1. 保留上部按钮功能: 切换抓手 (Gripper Toggle)
-        # ----------------------------------------------------------------------
+        # Upper button: Toggle gripper
         if msg.button_upper and not self._button_upper_pressed_state:
-            # 仅在从 '未按下' 状态转换为 '按下' 状态时执行
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 检测到 Button_upper 按下。切换抓手状态...")
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Upper button pressed. Toggling gripper...")
             self._toggle_gripper()
             
-        # 更新上部按钮的按下状态
+        # Update upper button press state
         self._button_upper_pressed_state = msg.button_upper
 
-       # ----------------------------------------------------------------------
-        # 2. 修改下部按钮功能: 启用/禁用位置命令发送 + 重置锚点
-        # ----------------------------------------------------------------------
+        # Lower button: Toggle pose updates and re-anchor
         if msg.button_lower and not self._button_lower_pressed_state:
-            # 仅在从 '未按下' 状态转换为 '按下' 状态时执行
+            # Flip the pose-streaming gate
             self.allow_pose_update = not self.allow_pose_update
             
-            state_msg = "已启用 (发送姿态)" if self.allow_pose_update else "已禁用 (保持不动)"
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 已按下 Button_lower: 位置命令发送已 **{state_msg}**。")
+            state_msg = "ENABLED (publishing poses)" if self.allow_pose_update else "DISABLED (hold position)"
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Lower button pressed: pose streaming is now **{state_msg}**。")
             
-            # 无论启用还是禁用，我们都需要重新建立“锚点”
-            # 重新获取机器人当前姿态作为新的初始姿态 (initial_position/orientation)
+            # Recenter: set the robot anchor to the current EEF pose (if available)
             robot_pos, robot_ori = self._get_robot_current_pose()
             
-            # 重置 Quest 控制器姿态锚点 (first_received_quest_position/orientation)
-            # 使用上一次平滑或原始接收到的 Quest 姿态作为新的偏移量起点
+            # Reset Quest controller anchors (first_received_quest_position/orientation)
             if self.last_pose_stamped_always is not None:
-                # 为了确保平稳启动，我们需要像在 _pose_callback 中那样对当前姿态进行平滑
-                # 警告: 直接使用 last_pose_stamped_always 会导致在滤波器未满时启动失败，
-                # 但由于 reset 后滤波器会清空，我们必须等待它再次填满。
-                # 
-                # 更好的做法是：在重置时，如果机器人姿态可用，就重置机器人锚点。
-                # Quest 锚点将在 _pose_callback 中重新建立（initial_orientation == None）。
-                pass # 保持 _pose_callback 中的逻辑，仅重置机器人锚点和滤波器历史。
+                # Do NOT anchor from the last raw sample here (filter just got cleared).
+                # Keep re-anchoring logic in _pose_callback.
+                pass # Only reset robot anchor and filter history here.
 
             if robot_pos is not None and robot_ori is not None:
-                # 将机器人锚点重置为当前的机器人位置
+                # Set robot anchor to the current EEF pose
                 self.initial_position = robot_pos
                 self.initial_orientation = robot_ori
-                self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] 机器人初始姿态已重置为当前位置 (锚点)。")
+                self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Robot anchor reset to current pose. ")
                 
-                # 重置 Quest 控制器锚点，以便 _pose_callback 再次捕获 Quest 姿态作为新的零点。
-                # 通过将 initial_orientation 设置为 None 来强制 _pose_callback 重新初始化。
+                # Force _pose_callback to re-anchor Quest on the next smoothed sample
                 self.initial_orientation = None 
                 self.first_received_quest_position = None
                 self.first_received_quest_orientation = None
 
-            # 清空滤波器历史，以防止旧数据影响新的运动。
+            # Clear filter history
             self.position_history.clear()
             self.orientation_history.clear()
 
-        # 更新下部按钮的按下状态
+        # Update lower button press state
         self._button_lower_pressed_state = msg.button_lower
