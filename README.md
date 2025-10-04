@@ -1,69 +1,102 @@
 # Quest2ros2
-Diescription:
-Using vr-handler to remote control kuka dual-arm robot.
+A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely control a KUKA dual-arm robot through ROS 2 and ROS–TCP communication.
 
 
-# Pre-condition:
-ROS2: Humble
-ROS-TCP-Communition:`git@github.com:guguroro/ros_tcp_communication.git`,change the IP to your IP.
+## System Requirements
+### Operating Systems
+- Ubuntu 22.04 LTS
+### ROS Version
+- ROS 2 Humble
+### VR Dependencies
+- Meta Quest 2 / Quest 3 headset with hand controllers
+### Robot platform
+- KUKA dual-arm robot
 
-You need to install `quest2ros` in your VR header:`https://quest2ros.github.io/ `
+## Installation Guide
 
-You need a meta quest 2/3
+1. Install ROS 2 Humble on Ubuntu.
 
-You need to create a seperate pkg to save the message type:`OVR2ROSHapticFeedback.msg` &&  `OVR2ROSInputs.msg`
+`https://docs.ros.org/en/humble/Installation.html`
 
-    e.g. create a pkg named quest2ros,then you can find the message type by : `from quest2ros.msg import OVR2ROSInputs`
+2. Clone and configure `ros_tcp_communication`
 
-# Launch the program
+`git clone git@github.com:guguroro/ros_tcp_communication.git`
 
-First,Launch your robot, using command like:
+3. Install and configure `quest2ros` on your VR headset.
 
-`ros2 launch lbr_bring dual_arm_mock.launch.py` 
+Follow instructions at: `https://quest2ros.github.io/`
 
-and 
+4. Create a new ROS 2 package for the message definitions:
 
-`ros2 launch lbr_bring dual_arm_move_group.launch.py rviz:=True` 
+`ros2 pkg create quest2ros --build-type ament_python`
 
-Then,Launch`ros_tcp_endpoint`to build communication between VR and robot.
+Copy the `.msg` files into `msg/` and rebuild.
 
-start your `quest2ros` App in your VR,and set the correct IP.
 
-Then,launch the ros_tcp_endpoint,using
+## Demo
+
+### Launch Robot Simulation
+
+```
+ros2 launch lbr_bring dual_arm_mock.launch.py
+ros2 launch lbr_bring dual_arm_move_group.launch.py rviz:=True
+```
+
+### Launch ROS–TCP Endpoint
 
 `ros2 launch ros_tcp_endpoint endpoint.py`
 
-Then,control robot arm using the vr-handler.Using command:
+### Start Quest2ROS App
 
-`ros2 run q2r_bringup Q2R_control_goal_right.py`
+On the Meta Quest headset, start the `quest2ros` app and set the correct IP.
 
-or
+### Run Control Node
 
-`ros2 run q2r_bringup Q2R_control_goal_left.py`
+Control the left or right arm via:
 
-    
+```
+ros2 run q2r_bringup Q2R_control_goal_left.py
+ros2 run q2r_bringup Q2R_control_goal_right.py
+```
 
-    
-# Usage
+### Expected Output
 
-If you want to build connection directly,use: 
+- RViz visualization of dual-arm robot.
 
-`ros2 run py01_topic CheckTCPconnection.py`
+- Real-time motion following VR hand controllers.
 
-this will subscribe `/q2r_right_hand_pose`topic,show you the right vr handler's position and orientation.you can change it to any topic you want.
+- Button presses (A = right, X = left) temporarily disable robot arm movement until released.
 
-`Q2R_control_goal_left.py` is used to control left arm
-`Q2R_control_goal_right.py` is used to control right arm
+- Demo video coming soon.
 
-Please change the `group_name`,`link_name`,`frame_id` to your real setting.
+## Instructions for Use
 
-Please change the server's namespace to your real namespace.
-    e.g. change `bh_robot` to your namespace or delete it
+### Check TCP Connection
 
-For the `button_lower`,means button `A` for right handler and button `X` for the left handler.while you presssing them,the robot arm will not be controlled until you release them. 
+To verify VR → ROS communication:
 
-# Important Note
-Create a seperate package for message type and copy the msg out to the pckage, otherwsie it can not be found be quest2ros2 
+`ros2 run q2r_bringup CheckTCPconnection.py`
 
-If the robot arm always jumping when you trying to control it,please recalibrate the sensor of robot arm.
+This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/orientation.
 
+### Customization
+
+- Update `group_name`, `link_name`, and `frame_id` to match your robot setup.
+
+- Update `namespace` (e.g. replace `bh_robot` with your namespace).
+
+
+
+### Notes
+
+- Create a separate package for message types, otherwise `quest2ros2` cannot find them.
+- If the robot arm jitters during control, recalibrate the robot’s sensors.
+
+## Debugging and Simulation
+### VR Input Simulator:ros2quest.py
+
+he file ros2quest.py is a VR Input Simulator. It publishes fixed input and velocity data (OVR2ROSInputs and Twist) at 1 Hz for testing purposes, allowing you to debug your control logic without the VR headset connected.
+
+### How to run
+
+`ros2 run q2r_bringup ros2quest.py`
