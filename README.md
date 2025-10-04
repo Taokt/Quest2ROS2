@@ -75,7 +75,7 @@ ros2 run q2r_bringup Q2R_control_goal_right.py
 
 To verify VR → ROS communication:
 
-`ros2 run py01_topic CheckTCPconnection.py`
+`ros2 run q2r_bringup CheckTCPconnection.py`
 
 This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/orientation.
 
@@ -85,7 +85,18 @@ This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/o
 
 - Update `namespace` (e.g. replace `bh_robot` with your namespace).
 
+
+
 ### Notes
 
 - Create a separate package for message types, otherwise `quest2ros2` cannot find them.
 - If the robot arm jitters during control, recalibrate the robot’s sensors.
+
+- ## Debugging and Simulation
+### VR Input Simulator:ros2quest.py
+
+he file ros2quest.py is a VR Input Simulator. It publishes fixed input and velocity data (OVR2ROSInputs and Twist) at 1 Hz for testing purposes, allowing you to debug your control logic without the VR headset connected.
+
+### How to run
+
+`ros2 run q2r_bringup ros2quest.py`
