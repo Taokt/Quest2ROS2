@@ -95,7 +95,7 @@ This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/o
 ## Debugging and Simulation
 ### VR Input Simulator:ros2quest.py
 
-he file ros2quest.py is a VR Input Simulator. It publishes fixed input and velocity data (OVR2ROSInputs and Twist) at 1 Hz for testing purposes, allowing you to debug your control logic without the VR headset connected.
+The file ros2quest.py is a VR Input Simulator. It publishes fixed input and velocity data (OVR2ROSInputs and Twist) at 1 Hz for testing purposes, allowing you to debug your control logic without the VR headset connected.
 
 ### How to run
 

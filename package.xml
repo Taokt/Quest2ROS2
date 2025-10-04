@@ -2,10 +2,12 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>q2r_bringup</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="quest2ros@todo.todo">quest2ros</maintainer>
-  <license>TODO: License declaration</license>
+  <version>1.0.0</version>
+  <description>A framework for using Meta Quest 2/3 VR controllers quest2ros to remotely control a KUKA dual-arm robot through ROS 2 and ROS–TCP communication.</description>
+  <maintainer email="jialong.li@cs.lth.se">Jialong Li</maintainer>
+  <maintainer email="zh6765wa-s@student.lu.se">Zhenguo Wang</maintainer>
+  <maintainer email="ti4050wa-s@student.lu.se">Tianci Wang</maintainer>
+  <license>Apache-2.0</license>
 
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
