@@ -6,7 +6,7 @@ from visualization_msgs.msg import Marker
 from tf2_ros import TransformListener, Buffer
 import numpy as np
 import tf_transformations
-import time # Consider replacing with rclpy.time for ROS-aware time handling
+import time
 
 # ROS 2 action client and gripper action message
 from rclpy.action import ActionClient
@@ -24,10 +24,10 @@ class BaseArmController(Node):
             arm_name (str): Arm name, e.g., 'left' or 'right', used for logging and distinction.
             robot_type (str): Robot type, e.g., 'kuka', 'franka', or 'z1'.
         """
-        # Builds a node name string based on arm name and robot type
+        
         node_name_str = f"{arm_name}_{robot_type}_arm_controller"
         super().__init__(node_name_str)
-        self._node_name = node_name_str # store for logging/reference
+        self._node_name = node_name_str 
 
         self.arm_name = arm_name
         self.robot_type = robot_type
@@ -35,7 +35,7 @@ class BaseArmController(Node):
         # Configure robot-specific parameters based on type and arm side
         self._configure_robot_params()
 
-        # State variables for tracking/anchoring
+
         self.last_pose_stamped_always = None
         self.initial_orientation = None # Initial EEF orientation (from TF)
         self.initial_position = None    # Initial EEF position (from TF)
@@ -47,7 +47,6 @@ class BaseArmController(Node):
         # Gripper state
         self.is_gripper_closed = False
         
-        # Subscriptions
         self.pose_subscription = self.create_subscription(
             PoseStamped,
             self.quest_pose_topic,
@@ -76,13 +75,10 @@ class BaseArmController(Node):
         # Gripper action client
         self.gripper_action_client = ActionClient(self, GripperCommand, self.gripper_action_topic)
         self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Waiting for gripper action server: {self.gripper_action_topic}")
-        # self.gripper_action_client.wait_for_server(timeout_sec=5.0)
 
         self.get_logger().info(f'[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Ready to receive {self.quest_pose_topic} and publish to {self.robot_target_pose_topic}')
-        # Fixed: use the stored _node_name instead of get_name()
         self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Node name: {self._node_name}")
 
-        # Lists for trajectory logging (activate later if needed)
         self.commanded_trajectory_x = []
         self.commanded_trajectory_y = []
         self.commanded_trajectory_z = []
@@ -97,19 +93,19 @@ class BaseArmController(Node):
         Configure robot-specific parameters (topics and TF frames) based on the
         robot type and arm side.
         """
-        topic_name_suffix = "/target_frame" # Common suffix for target pose command topics
+        topic_name_suffix = "/target_frame" 
 
         if self.robot_type == "franka":
             self.base_frame_id = "base"
             self.end_effector_link_name = "fr3_hand_tcp"
             controller_prefix = "/cartesian_impedance_controller"
-            self.quest_pose_topic = f"/q2r_{self.arm_name}_hand_pose" # e.g., /q2r_left_hand_pose
+            self.quest_pose_topic = f"/q2r_{self.arm_name}_hand_pose" 
             self.quest_inputs_topic = f"/q2r_{self.arm_name}_hand_inputs"
             self.robot_target_pose_topic = controller_prefix + topic_name_suffix
-            self.gripper_action_topic = f"/franka_gripper/gripper_action" # e.g., /q2r_right_hand_inputs
+            self.gripper_action_topic = f"/franka_gripper/gripper_action" 
 
         elif self.robot_type == "kuka":
-            self.base_frame_id = "bh_robot_base" # TF frames
+            self.base_frame_id = "bh_robot_base" 
 
             if self.arm_name == "left":
                 self.end_effector_link_name = "left_arm_link_ee"
@@ -137,8 +133,8 @@ class BaseArmController(Node):
             # Controller namespace
             controller_prefix = "/cartesian_impedance_controller"
             # Quest input topics (built from arm side; adjust if Z1 uses a single-arm setup)
-            self.quest_pose_topic = f"/q2r_{self.arm_name}_hand_pose" # e.g., /q2r_left_hand_pose
-            self.quest_inputs_topic = f"/q2r_{self.arm_name}_hand_inputs" # e.g., /q2r_left_hand_inputs
+            self.quest_pose_topic = f"/q2r_{self.arm_name}_hand_pose" 
+            self.quest_inputs_topic = f"/q2r_{self.arm_name}_hand_inputs" 
             # Command topic and gripper action topic
             self.robot_target_pose_topic = controller_prefix + topic_name_suffix
             self.gripper_action_topic = "/z1/gripper_action"
@@ -172,7 +168,6 @@ class BaseArmController(Node):
         """
         try:
             # Look up the latest available transform: base_frame <- end_effector_link
-            # If you want to wait for TF to become available, set a small timeout, e.g., 0.2s.
             transform: TransformStamped = self.tf_buffer.lookup_transform(
                 self.base_frame_id, self.end_effector_link_name, rclpy.time.Time()
             )
@@ -221,7 +216,6 @@ class BaseArmController(Node):
         avg_orientation = np.mean(list(self.orientation_history), axis=0)
         norm = np.linalg.norm(avg_orientation)
         if norm < 1e-9:
-            # Extremely rare: avoid divide-by-zero; signal no orientation yet
             self.get_logger().warning(
                 f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
                 f"Average quaternion norm ~0; skipping this sample."
@@ -247,13 +241,13 @@ class BaseArmController(Node):
         # Query the current EEF pose from TF (in the base frame)
         robot_pos, robot_ori = self._get_robot_current_pose()
         if robot_pos is None or robot_ori is None:
-            return # Cannot proceed without a valid TF transform
+            return 
 
         # Smooth the incoming Quest pose with the moving-average filter
         avg_quest_pos_np, avg_quest_ori_np = self._apply_moving_average_filter(pose_stamped)
 
         if avg_quest_pos_np is None:
-            return # Filter queue is not yet full
+            return
 
         # Set the initial orientation and position if not already set
         if self.initial_orientation is None:
@@ -265,32 +259,26 @@ class BaseArmController(Node):
                 f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
                 f"Anchored robot pose: pos={self.initial_position}, ori={self.initial_orientation}"
             )
-            return # No movement on the first callback
+            return 
 
-        # Compute translation offset (smoothed)
         offset_x = avg_quest_pos_np[0] - self.first_received_quest_position[0]
         offset_y = avg_quest_pos_np[1] - self.first_received_quest_position[1]
         offset_z = avg_quest_pos_np[2] - self.first_received_quest_position[2]
 
-        # Compute rotation offset (smoothed) in quaternion space
         q_quest_initial_np = self.first_received_quest_orientation
         q_quest_current_np = avg_quest_ori_np
 
-        # Relative hand rotation since anchoring: q_rel = q_now * inv(q_initial)
         q_quest_initial_inv = tf_transformations.quaternion_inverse(q_quest_initial_np)
         q_quest_relative_rotation = tf_transformations.quaternion_multiply(q_quest_current_np, q_quest_initial_inv)
 
-        # Apply the relative hand rotation to the robot's initial orientation
         q_robot_initial_np = np.array([self.initial_orientation.x, 
                                        self.initial_orientation.y,
                                        self.initial_orientation.z, 
                                        self.initial_orientation.w])
         
         q_target_robot_np = tf_transformations.quaternion_multiply(q_quest_relative_rotation, q_robot_initial_np)
-        # Normalize to ensure a valid unit quaternion
         q_target_robot_np /= np.linalg.norm(q_target_robot_np)
 
-        # Construct the target Pose message
         target_pose = Pose()
         target_pose.position.x = self.initial_position[0] + offset_x
         target_pose.position.y = self.initial_position[1] + offset_y
@@ -302,7 +290,6 @@ class BaseArmController(Node):
         target_pose.orientation.z = q_target_robot_np[2]
         target_pose.orientation.w = q_target_robot_np[3]
 
-        # (Optional) Publish a visualization marker to RViz
         rot_matrix_for_marker = tf_transformations.quaternion_matrix(q_quest_current_np)[:3,:3]
         z_vec_marker = rot_matrix_for_marker.dot([0,0,1])
         x_axis_marker = z_vec_marker / np.linalg.norm(z_vec_marker)
@@ -344,7 +331,6 @@ class BaseArmController(Node):
         marker.color.a = 1.0
         self.marker_pub.publish(marker)
 
-        # Publish the final target pose to the robot controller
         target_pose_stamped = PoseStamped()
         target_pose_stamped.header.frame_id = self.base_frame_id
         target_pose_stamped.header.stamp = self.get_clock().now().to_msg()
@@ -406,14 +392,10 @@ class BaseArmController(Node):
             state_msg = "ENABLED (publishing poses)" if self.allow_pose_update else "DISABLED (hold position)"
             self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Lower button pressed: pose streaming is now **{state_msg}**。")
             
-            # Recenter: set the robot anchor to the current EEF pose (if available)
             robot_pos, robot_ori = self._get_robot_current_pose()
             
-            # Reset Quest controller anchors (first_received_quest_position/orientation)
             if self.last_pose_stamped_always is not None:
-                # Do NOT anchor from the last raw sample here (filter just got cleared).
-                # Keep re-anchoring logic in _pose_callback.
-                pass # Only reset robot anchor and filter history here.
+                pass
 
             if robot_pos is not None and robot_ori is not None:
                 # Set robot anchor to the current EEF pose
