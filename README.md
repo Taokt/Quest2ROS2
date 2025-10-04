@@ -22,6 +22,17 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 
 `git clone git@github.com:guguroro/ros_tcp_communication.git`
 
+**NOTE:** We are using a slightly modified version of the official `ros_tcp_communication` library. This is because the official repository has known issues regarding data reception and conversion. We have submitted a **Pull Request** to the original repository but have not yet received a response. To ensure smooth operation of this project, we recommend using the version provided in this link.
+
+**Key Modifications:** The main adjustments were made in two places:
+
+a) In `server.py`, the decoding line was updated to **`message_json = data.decode("utf-8")`** to correctly handle incoming data encoding.
+
+b) We added a custom file, **`ros_msg_converter.py`**, to ensure the signals are correctly translated and interpreted.
+
+Remember to change the IP address within the library to your device's IP before use.
+
+
 3. Install and configure `quest2ros` on your VR headset.
 
 Follow instructions at: `https://quest2ros.github.io/`
