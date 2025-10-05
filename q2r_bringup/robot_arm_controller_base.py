@@ -1,8 +1,9 @@
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped, Quaternion, Pose, TransformStamped
+from geometry_msgs.msg import PoseStamped, Quaternion, Pose, TransformStamped, Point
 from quest2ros.msg import OVR2ROSInputs
 from visualization_msgs.msg import Marker
+from std_msgs.msg import ColorRGBA
 from tf2_ros import TransformListener, Buffer
 import numpy as np
 import tf_transformations
@@ -290,46 +291,200 @@ class BaseArmController(Node):
         target_pose.orientation.z = q_target_robot_np[2]
         target_pose.orientation.w = q_target_robot_np[3]
 
-        rot_matrix_for_marker = tf_transformations.quaternion_matrix(q_quest_current_np)[:3,:3]
-        z_vec_marker = rot_matrix_for_marker.dot([0,0,1])
-        x_axis_marker = z_vec_marker / np.linalg.norm(z_vec_marker)
+        # rot_matrix_for_marker = tf_transformations.quaternion_matrix(q_quest_current_np)[:3,:3]
+        # z_vec_marker = rot_matrix_for_marker.dot([0,0,1])
+        # x_axis_marker = z_vec_marker / np.linalg.norm(z_vec_marker)
 
-        up_vec_marker = np.array([0.0, 0.0, 1.0])
-        if np.abs(np.dot(x_axis_marker, up_vec_marker)) > 0.9:
-            up_vec_marker = np.array([0.0, 1.0, 0.0])
+        # up_vec_marker = np.array([0.0, 0.0, 1.0])
+        # if np.abs(np.dot(x_axis_marker, up_vec_marker)) > 0.9:
+        #     up_vec_marker = np.array([0.0, 1.0, 0.0])
 
-        y_axis_marker = np.cross(up_vec_marker, x_axis_marker)
-        y_axis_marker /= np.linalg.norm(y_axis_marker)
-        z_axis_marker = np.cross(x_axis_marker, y_axis_marker)
-        z_axis_marker /= np.linalg.norm(z_axis_marker)
+        # y_axis_marker = np.cross(up_vec_marker, x_axis_marker)
+        # y_axis_marker /= np.linalg.norm(y_axis_marker)
+        # z_axis_marker = np.cross(x_axis_marker, y_axis_marker)
+        # z_axis_marker /= np.linalg.norm(z_axis_marker)
 
-        rot_matrix_final_marker = np.eye(4)
-        rot_matrix_final_marker[:3, 0] = x_axis_marker
-        rot_matrix_final_marker[:3, 1] = y_axis_marker
-        rot_matrix_final_marker[:3, 2] = z_axis_marker
+        # rot_matrix_final_marker = np.eye(4)
+        # rot_matrix_final_marker[:3, 0] = x_axis_marker
+        # rot_matrix_final_marker[:3, 1] = y_axis_marker
+        # rot_matrix_final_marker[:3, 2] = z_axis_marker
 
-        q_marker = tf_transformations.quaternion_from_matrix(rot_matrix_final_marker)
-        q_marker /= np.linalg.norm(q_marker)
-        quat_marker = Quaternion(x=q_marker[0], y=q_marker[1], z=q_marker[2], w=q_marker[3])
+        # q_marker = tf_transformations.quaternion_from_matrix(rot_matrix_final_marker)
+        # q_marker /= np.linalg.norm(q_marker)
+        # quat_marker = Quaternion(x=q_marker[0], y=q_marker[1], z=q_marker[2], w=q_marker[3])
 
-        marker = Marker()
-        marker.header.frame_id = self.base_frame_id
-        marker.header.stamp = self.get_clock().now().to_msg()
-        marker.ns = f"{self.arm_name}_{self.robot_type}_target_pose"
-        marker.id = 0
-        marker.type = Marker.ARROW
-        marker.action = Marker.ADD
-        marker.pose.position = target_pose.position
-        marker.pose.orientation = quat_marker
 
-        marker.scale.x = 0.2
-        marker.scale.y = 0.04
-        marker.scale.z = 0.04
-        marker.color.r = 1.0 if self.arm_name == 'right' else 0.0
-        marker.color.g = 0.0 if self.arm_name == 'right' else 1.0
-        marker.color.b = 0.0
-        marker.color.a = 1.0
-        self.marker_pub.publish(marker)
+        # # 1) 取当前末端位置（你前面刚算过 robot_pos）
+        # cur_x, cur_y, cur_z = robot_pos  # robot_pos 来自 _get_robot_current_pose()
+
+        # # 2) 取目标位置（你前面已生成 target_pose）
+        # tgt_x = target_pose.position.x
+        # tgt_y = target_pose.position.y
+        # tgt_z = target_pose.position.z
+
+        # # 3) 可选：计算并打印位移差/距离，方便调试
+        # dx, dy, dz = (tgt_x - cur_x), (tgt_y - cur_y), (tgt_z - cur_z)
+        # dist = (dx**2 + dy**2 + dz**2) ** 0.5
+
+
+        
+        # self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Δpos = ({dx:.3f}, {dy:.3f}, {dz:.3f}), |Δ| = {dist:.3f} m")
+
+        # scale_factor = 10
+        # dx *= scale_factor
+        # dy *= scale_factor
+        # dz *= scale_factor
+
+        # end_x = cur_x + dx
+        # end_y = cur_y + dy
+        # end_z = cur_z + dz
+
+        # # 4) 用两点模式画箭头：起点=当前，终点=目标
+        # arrow = Marker()
+        # arrow.header.frame_id = self.base_frame_id
+        # arrow.header.stamp = self.get_clock().now().to_msg()
+        # arrow.ns = f"{self.arm_name}_{self.robot_type}_current_to_target"
+        # arrow.id = 100  # 避免与其他 marker 冲突
+        # arrow.type = Marker.ARROW
+        # arrow.action = Marker.ADD
+
+        # # 两点（世界坐标，直接用 base_frame 下的坐标）
+        # arrow.points = [Point(x=cur_x, y=cur_y, z=cur_z),
+        #                 Point(x=end_x, y=end_y, z=end_z)]
+
+        # # 两点模式下，scale 的含义：
+        # #   x = 箭杆直径（shaft diameter）
+        # #   y = 箭头锥体直径（head diameter）
+        # #   z = 箭头长度（head length）
+        # arrow.scale.x = 0.02  # 细一点的杆
+        # arrow.scale.y = 0.05  # 箭头粗一点
+        # arrow.scale.z = 0.01  # 箭头更明显
+
+        # # 颜色：右臂红，左臂绿（与你之前一致）
+        # arrow.color.r = 1.0 if self.arm_name == 'right' else 0.0
+        # arrow.color.g = 0.0 if self.arm_name == 'right' else 1.0
+        # arrow.color.b = 0.0
+        # arrow.color.a = 1.0
+
+        # self.marker_pub.publish(arrow)
+
+        # # ============ 1️⃣ 位置点 ============
+        # pos_marker = Marker()
+        # pos_marker.header.frame_id = self.base_frame_id
+        # pos_marker.header.stamp = self.get_clock().now().to_msg()
+        # pos_marker.ns = f"{self.arm_name}_{self.robot_type}_target_pos"
+        # pos_marker.id = 1
+        # pos_marker.type = Marker.SPHERE
+        # pos_marker.action = Marker.ADD
+        # pos_marker.pose.position = target_pose.position
+        # pos_marker.pose.orientation.w = 1.0  # 球体不需要旋转
+        # pos_marker.scale.x = 0.03
+        # pos_marker.scale.y = 0.03
+        # pos_marker.scale.z = 0.03
+        # pos_marker.color = ColorRGBA(r=1.0, g=0.5, b=0.0, a=1.0)  # 橙色球体
+        # self.marker_pub.publish(pos_marker)
+
+        # ============ 2️⃣ 姿态坐标系 ============
+        axes_marker = Marker()
+        axes_marker.header.frame_id = self.base_frame_id
+        axes_marker.header.stamp = self.get_clock().now().to_msg()
+        axes_marker.ns = f"{self.arm_name}_{self.robot_type}_target_axes"
+        axes_marker.id = 2
+        axes_marker.type = Marker.LINE_LIST
+        axes_marker.action = Marker.ADD
+        axes_marker.pose.position = target_pose.position
+        axes_marker.pose.orientation = target_pose.orientation
+        axes_marker.scale.x = 0.02  # 线条粗细
+
+        axis_length = 0.2
+        axes_marker.points = [
+            Point(x=0.0,y=0.0,z=0.0), Point(x=axis_length,y=0.0,z=0.0),  # X
+            Point(x=0.0,y=0.0,z=0.0), Point(x=0.0,y=axis_length,z=0.0),  # Y
+            Point(x=0.0,y=0.0,z=0.0), Point(x=0.0,y=0.0,z=axis_length)   # Z
+        ]
+        axes_marker.colors = [
+            ColorRGBA(r=1.0,g=0.0,b=0.0,a=1.0), ColorRGBA(r=1.0,g=0.0,b=0.0,a=1.0),
+            ColorRGBA(r=0.0,g=1.0,b=0.0,a=1.0), ColorRGBA(r=0.0,g=1.0,b=0.0,a=1.0),
+            ColorRGBA(r=0.0,g=0.0,b=1.0,a=1.0), ColorRGBA(r=0.0,g=0.0,b=1.0,a=1.0)
+        ]
+        self.marker_pub.publish(axes_marker)
+
+        # ============ 3️⃣ 文本显示 xyz + xyzw ============
+        # text_marker = Marker()
+        # text_marker.header.frame_id = self.base_frame_id
+        # text_marker.header.stamp = self.get_clock().now().to_msg()
+        # text_marker.ns = f"{self.arm_name}_{self.robot_type}_target_text"
+        # text_marker.id = 3
+        # text_marker.type = Marker.TEXT_VIEW_FACING
+        # text_marker.action = Marker.ADD
+        # text_marker.pose.position.x = target_pose.position.x + 0.05
+        # text_marker.pose.position.y = target_pose.position.y + 0.05
+        # text_marker.pose.position.z = target_pose.position.z + 0.05
+        # text_marker.scale.z = 0.05  # 字体高度
+        # text_marker.color = ColorRGBA(r=1.0, g=1.0, b=1.0, a=1.0)
+
+        # p = target_pose.position
+        # o = target_pose.orientation
+
+        # # ===== 全局固定参数 =====
+        # fixed_x = 0.5   # 固定在 base frame 的这个位置（可调）
+        # fixed_y = 0.0
+        # fixed_z = 0.6   # 稍高一点，悬浮显示
+
+        # dx_gap = 1.2  # 两列水平间距
+        # font_h = 0.045  # 字体大小
+
+        # # ---------- 左列：位置 (x, y, z) ----------
+        # text_marker_pos = Marker()
+        # text_marker_pos.header.frame_id = self.base_frame_id   # 固定 frame
+        # text_marker_pos.header.stamp = self.get_clock().now().to_msg()
+        # text_marker_pos.ns = "target_text_fixed"
+        # text_marker_pos.id = 30
+        # text_marker_pos.type = Marker.TEXT_VIEW_FACING
+        # text_marker_pos.action = Marker.ADD
+
+        # text_marker_pos.pose.position.x = fixed_x - dx_gap/2.0
+        # text_marker_pos.pose.position.y = fixed_y
+        # text_marker_pos.pose.position.z = fixed_z
+
+        # text_marker_pos.scale.z = font_h
+        # text_marker_pos.color = ColorRGBA(r=1.0, g=1.0, b=1.0, a=1.0)
+        # text_marker_pos.text = (
+        #     f"x={p.x:.3f}\n"
+        #     f"y={p.y:.3f}\n"
+        #     f"z={p.z:.3f}"
+        # )
+        # self.marker_pub.publish(text_marker_pos)
+
+        # # ---------- 右列：姿态 (qx, qy, qz, qw) ----------
+        # text_marker_ori = Marker()
+        # text_marker_ori.header.frame_id = self.base_frame_id
+        # text_marker_ori.header.stamp = self.get_clock().now().to_msg()
+        # text_marker_ori.ns = "target_text_fixed"
+        # text_marker_ori.id = 31
+        # text_marker_ori.type = Marker.TEXT_VIEW_FACING
+        # text_marker_ori.action = Marker.ADD
+
+        # text_marker_ori.pose.position.x = fixed_x + dx_gap/2.0
+        # text_marker_ori.pose.position.y = fixed_y
+        # text_marker_ori.pose.position.z = fixed_z
+
+        # text_marker_ori.scale.z = font_h
+        # text_marker_ori.color = ColorRGBA(r=0.85, g=0.9, b=1.0, a=1.0)
+        # text_marker_ori.text = (
+        #     f"qx={o.x:.3f}\n"
+        #     f"qy={o.y:.3f}\n"
+        #     f"qz={o.z:.3f}\n"
+        #     f"qw={o.w:.3f}"
+        # )
+        # self.marker_pub.publish(text_marker_ori)
+
+
+
+
+
+
+
 
         target_pose_stamped = PoseStamped()
         target_pose_stamped.header.frame_id = self.base_frame_id
