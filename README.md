@@ -45,7 +45,6 @@ colcon build --packages-select ros_tcp_endpoint
 source install/setup.bash
 ```
 
-
 3. Install and configure `quest2ros` app on your VR headset.
 
 Follow instructions at: `https://quest2ros.github.io/`
@@ -65,7 +64,11 @@ mkdir msg
 
 Then copy the `.msg` files from `quest2ros2/msg` into the newly created `quest2ros/msg` folder.
 
-5. `git clone` this project
+5. Clone this project
+
+**Customization**
+- Update the parameters `group_name`, `link_name`, and `frame_id` in the control scripts to match your robot's setup.
+- Update the `namespace` if your robot uses a custom namespace.
 
 6. Build your ROS 2 Humble workspace:
 
@@ -87,6 +90,36 @@ On your VR headset, open the Quest2ROS app, set your device’s IP address (<YOU
 `ros2 run q2r_bringup ros2quest.py`
 
 This node is used to confirm whether the right-hand controller is connected properly. If you want to test the left-hand controller, please change the subscribed topic from `/q2r_right_hand_pose` to `/q2r_left_hand_pose`
+
+## Running and Interaction
+
+### Start your robot hardware, RViz, and controller.
+
+Ensure your physical robot, RViz visualization, and motion controller are all running.
+
+### Expected Output
+
+- RViz visualization of dual-arm robot.
+
+- Real-time motion following VR hand controllers.
+
+- Lower-Button presses (A = right, X = left) toggle the robot arm movement. (Press once to enable, press again to disable.)
+
+### Button functions
+
+- Upper Button: Toggles Gripper state (Open/Close)
+
+- Lower Button: Pauses/Resumes pose streaming and performs an Anchor Reset. This immediately snaps the virtual target back to the robot's current position, eliminating movement jumps caused by kinematic limits or drift.
+
+
+
+
+
+
+
+
+
+
 
 ## Demo
 
