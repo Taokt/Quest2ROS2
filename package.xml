@@ -1,23 +1,22 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>q2r_bringup</name>
-  <version>1.0.0</version>
-  <description>A framework for using Meta Quest 2/3 VR controllers quest2ros to remotely control a KUKA dual-arm robot through ROS 2 and ROS–TCP communication.</description>
-  <maintainer email="jialong.li@cs.lth.se">Jialong Li</maintainer>
-  <maintainer email="zh6765wa-s@student.lu.se">Zhenguo Wang</maintainer>
-  <maintainer email="ti4050wa-s@student.lu.se">Tianci Wang</maintainer>
-  <license>Apache-2.0</license>
+	<name>q2r_bringup</name>
+	<version>1.0.0</version>
+	<description>A framework for using VR controllers to remotely control robot system through ROS 2 and ROS–TCP communication.</description>
 
-  <depend>rclpy</depend>
-  <depend>std_msgs</depend>
+	<maintainer email="anon.author@anon.org">The Authors</maintainer>
+	<license>Apache-2.0</license>
 
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
+	<depend>rclpy</depend>
+	<depend>std_msgs</depend>
 
-  <export>
-    <build_type>ament_python</build_type>
-  </export>
+	<test_depend>ament_copyright</test_depend>
+	<test_depend>ament_flake8</test_depend>
+	<test_depend>ament_pep257</test_depend>
+	<test_depend>python3-pytest</test_depend>
+
+	<export>
+		<build_type>ament_python</build_type>
+	</export>
 </package>
