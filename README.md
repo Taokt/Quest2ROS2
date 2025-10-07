@@ -66,9 +66,9 @@ Then copy the `.msg` files from `quest2ros2/msg` into the newly created `quest2r
 
 5. Clone this project
 
-**Customization**
-- Update the parameters `group_name`, `link_name`, and `frame_id` in the control scripts to match your robot's setup.
-- Update the `namespace` if your robot uses a custom namespace.
+User should update the Base Frame ID, EEF Link Name, and ROS 2 Topic names within the `_configure_robot_params` in `robot_arm_controller_base.py` method to match your robot's setup. 
+
+Ensure you also customize the namespace (e.g., replacing bh_robot) in the controller topics to correctly address your specific robot's action servers.
 
 6. Build your ROS 2 Humble workspace:
 
