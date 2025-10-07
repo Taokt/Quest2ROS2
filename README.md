@@ -54,7 +54,16 @@ Follow instructions at: `https://quest2ros.github.io/`
 
 `ros2 pkg create quest2ros --build-type ament_python`
 
-Copy the `.msg` files from `msg`  into `msg/` and rebuild.
+This command generates an empty package named `quest2ros`.
+
+Navigate into this package and create a folder named `msg`:
+
+```
+cd quest2ros
+mkdir msg
+```
+
+Then copy the `.msg` files from `quest2ros2/msg` into the newly created `quest2ros/msg` folder.
 
 5. Build your ROS 2 Humble workspace:
 
