@@ -76,7 +76,7 @@ ros2 run q2r_bringup Q2R_control_goal_right.py
 
 - Real-time motion following VR hand controllers.
 
-- Button presses (A = right, X = left) temporarily disable robot arm movement until released.
+- Lower-Button presses (A = right, X = left) temporarily disable robot arm movement until released.
 
 - Demo video coming soon.
 
