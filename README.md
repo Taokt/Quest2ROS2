@@ -66,7 +66,7 @@ Then copy the `.msg` files from `quest2ros2/msg` into the newly created `quest2r
 
 5. Clone this project
 
-User should update the Base Frame ID (`base_link`), EEF Link Name ((`left_arm_link_ee`, `right_arm_link_ee`)) , and ROS 2 Topic names within the `_configure_robot_params` in `robot_arm_controller_base.py` method to match your robot's setup. 
+User should update the Base Frame ID (`base_link`), End-Effector Link Name ((`left_arm_link_ee`, `right_arm_link_ee`)) , and ROS 2 Topic names within the `_configure_robot_params` in `robot_arm_controller_base.py` method to match your robot's setup. 
 
 Ensure you also customize the namespace (e.g., replacing bh_robot) in the controller topics to correctly address your specific robot's action servers.
 
