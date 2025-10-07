@@ -11,7 +11,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 - Meta Quest 2 / Quest 3 headset with hand controllers
 
 
-## Installation Guide
+## Setup and Configuration
 
 1. Install ROS 2 Humble on Ubuntu.
 
