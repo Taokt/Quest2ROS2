@@ -118,13 +118,12 @@ Ensure your physical robot, RViz visualization, and motion controller are all ru
 
 - Real-time motion following VR hand controllers.
 
-- Lower-Button presses (A = right, X = left) toggle the robot arm movement. (Press once to enable, press again to disable.)
-
 ### Button functions
 
-- Upper Button: Toggles Gripper state (Open/Close)
+- Upper Button : Toggles Gripper state (each press switchs between open and close).
 
-- Lower Button: Pauses/Resumes pose streaming and performs an Anchor Reset. This immediately snaps the virtual target back to the robot's current position, eliminating movement jumps caused by kinematic limits or drift.
+- Lower Button : Toggles the robot arm movement (each press switches between enable and disable), and also pauses/resumes pose streaming while performing an Anchor Reset that snaps the virtual target back to the robot’s current position to prevent movement jumps due to kinematic limits or drift.
+
 
 
 
