@@ -90,6 +90,12 @@ To verify VR → ROS communication:
 
 This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/orientation.
 
+### Button functions
+
+- Upper Button: Toggles Gripper state (Open/Close)
+
+- Lower Button: Pauses/Resumes pose streaming and performs an Anchor Reset. This immediately snaps the virtual target back to the robot's current position, eliminating movement jumps caused by kinematic limits or drift.
+
 ### Customization
 
 - Update `group_name`, `link_name`, and `frame_id` to match your robot setup.
