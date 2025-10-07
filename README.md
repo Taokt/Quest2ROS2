@@ -65,15 +65,20 @@ mkdir msg
 
 Then copy the `.msg` files from `quest2ros2/msg` into the newly created `quest2ros/msg` folder.
 
-5. Build your ROS 2 Humble workspace:
+5. `git clone` this project
 
-`colcon build`
+6. Build your ROS 2 Humble workspace:
 
-6. Launch ROS–TCP Endpoint  
+```
+colcon build
+source install/setup.bash
+```
+
+7. Launch ROS–TCP Endpoint  
 
 `ros2 launch ros_tcp_endpoint endpoint.py`
 
-7. Configure the connection in the Quest2ROS app.
+8. Configure the connection in the Quest2ROS app.
 
 On your VR headset, open the Quest2ROS app, set your device’s IP address (<YOUR_IP>) and the same port number as defined in endpoint.py, then press Apply to confirm.
 
