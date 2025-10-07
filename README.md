@@ -30,7 +30,7 @@ a) In `server.py`, the decoding line was updated to **`message_json = data.decod
 
 b) We added a custom file, **`ros_msg_converter.py`**, to ensure the signals are correctly translated and interpreted.
 
-Remember to change the IP address within the library to your device's IP before use.
+c) Remember to change the IP address to your device's IP in `endpoint.py` before use.
 
 
 3. Install and configure `quest2ros` on your VR headset.
@@ -66,8 +66,8 @@ On the Meta Quest headset, start the `quest2ros` app and set the correct IP.
 Control the left or right arm via:
 
 ```
-ros2 run q2r_bringup Q2R_control_goal_left.py
-ros2 run q2r_bringup Q2R_control_goal_right.py
+ros2 run q2r_bringup left_arm_controller.py
+ros2 run q2r_bringup right_arm_controller.py
 ```
 
 ### Expected Output
