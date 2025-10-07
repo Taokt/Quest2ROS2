@@ -18,11 +18,11 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 
 `https://docs.ros.org/en/humble/Installation.html`
 
-2. Clone and configure `ros_tcp_communication`
+2. Clone and configure `ROS-TCP-Endpoint`
 
 `git clone git@github.com:guguroro/ros_tcp_communication.git`
 
-**NOTE:** We are using a slightly modified version of the official `ros_tcp_communication` library. This is because the official repository has known issues regarding data reception and conversion. We have submitted a **Pull Request** to the original repository but have not yet received a response. To ensure smooth operation of this project, we recommend using the version provided in this link.
+**NOTE:** We are using a slightly modified version of the official [ROS-TCP-Endpoint](https://github.com/Unity-Technologies/ROS-TCP-Endpoint) library. This is because the official repository has known issues regarding data reception and conversion. We have submitted a **Pull Request** to the original repository but have not yet received a response. To ensure smooth operation of this project, we recommend using the version provided in this link.
 
 **Key Modifications:** The main adjustments were made in two places:
 
