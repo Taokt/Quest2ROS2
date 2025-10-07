@@ -120,7 +120,7 @@ Ensure your physical robot, RViz visualization, and motion controller are all ru
 
 ### Button functions
 
-- Upper Button : Toggles Gripper state (each press switchs between open and close).
+- Upper Button : Toggles gripper state (each press switchs between open and close).
 
 - Lower Button : Toggles the robot arm movement (each press switches between enable and disable), and also pauses/resumes pose streaming while performing an Anchor Reset that snaps the virtual target back to the robot’s current position to prevent movement jumps due to kinematic limits or drift.
 
