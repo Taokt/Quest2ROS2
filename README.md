@@ -7,7 +7,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 - Ubuntu 22.04 LTS
 ### ROS Version
 - ROS 2 Humble
-### VR Dependencies
+### VR Hardware
 - Meta Quest 2 / Quest 3 headset with hand controllers
 
 
