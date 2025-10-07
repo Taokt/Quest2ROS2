@@ -18,7 +18,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 
 `https://docs.ros.org/en/humble/Installation.html`
 
-2. Clone and configure `ROS-TCP-Endpoint`
+2. Clone and configure [Fixed-ROS-TCP-Endpoint](https://github.com/guguroro/ros_tcp_communication)
 
 `git clone git@github.com:guguroro/ros_tcp_communication.git`
 
