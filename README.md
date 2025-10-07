@@ -130,41 +130,6 @@ Ensure your physical robot, RViz visualization, and motion controller are all ru
 
 
 
-## Demo
-
-### Launch Robot Simulation
-
-```
-ros2 launch lbr_bring dual_arm_mock.launch.py
-ros2 launch lbr_bring dual_arm_move_group.launch.py rviz:=True
-```
-
-### Launch ROS–TCP Endpoint
-
-`ros2 launch ros_tcp_endpoint endpoint.py`
-
-### Start Quest2ROS App
-
-On the Meta Quest headset, start the `quest2ros` app and set the correct IP.
-
-### Run Control Node
-
-Control the left or right arm via:
-
-```
-ros2 run q2r_bringup left_arm_controller.py
-ros2 run q2r_bringup right_arm_controller.py
-```
-
-### Expected Output
-
-- RViz visualization of dual-arm robot.
-
-- Real-time motion following VR hand controllers.
-
-- Lower-Button presses (A = right, X = left) toggle the robot arm movement. (Press once to enable, press again to disable.)
-
-
 ## Instructions for Use
 
 ### Check TCP Connection
@@ -195,10 +160,10 @@ This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/o
 - If the robot arm jitters during control, recalibrate the robot’s sensors.
 
 ## Debugging and Simulation
-### VR Input Simulator:ros2quest.py
+### VR Input Simulator:SimulationInpt.py
 
-The file ros2quest.py is a VR Input Simulator. It publishes fixed input and velocity data (OVR2ROSInputs and Twist) at 1 Hz for testing purposes, allowing you to debug your control logic without the VR headset connected.
+The file SimulationInpt.py is a VR Input Simulator. It publishes fixed input and velocity data (OVR2ROSInputs and Twist) at 1 Hz for testing purposes, allowing you to debug your control logic without the VR headset connected.
 
 ### How to run
 
-`ros2 run q2r_bringup ros2quest.py`
+`ros2 run q2r_bringup SimulationInpt.py`
