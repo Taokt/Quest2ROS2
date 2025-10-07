@@ -5,7 +5,6 @@ import numpy as np
 import threading
 
 from quest2ros.msg import OVR2ROSInputs, OVR2ROSHapticFeedback
-# from quest2ros.msg import OVR2ROSInputs, OVR2ROSHapticFeedback
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.executors import ExternalShutdownException
 
@@ -23,7 +22,7 @@ class ros2quest:
         # subscriber to quest
         self.node = node
         self.ovr2ros_right_hand_pose_sub = node.create_subscription(
-            PoseStamped,"/q2r_right_hand_pose", self.ovr2ros_right_hand_pose_callback,10 #Qos 10  is added by me
+            PoseStamped,"/q2r_right_hand_pose", self.ovr2ros_right_hand_pose_callback,10
         )
         self.ovr2ros_right_hand_twist_sub = node.create_subscription(
             Twist,"/q2r_right_hand_twist", self.ovr2ros_right_hand_twist_callback,10
