@@ -41,7 +41,7 @@ Follow instructions at: `https://quest2ros.github.io/`
 
 `ros2 pkg create quest2ros --build-type ament_python`
 
-Copy the `.msg` files into `msg/` and rebuild.
+Copy the `.msg` files from `msg`  into `msg/` and rebuild.
 
 
 ## Demo
