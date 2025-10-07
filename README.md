@@ -18,19 +18,19 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 
 `https://docs.ros.org/en/humble/Installation.html`
 
-2. Clone and configure `ros_tcp_communication`
+2. Clone and configure [ROS-TCP-Endpoint](https://github.com/Unity-Technologies/ROS-TCP-Endpoint)
 
 `git clone git@github.com:guguroro/ros_tcp_communication.git`
 
-**NOTE:** We are using a slightly modified version of the official `ros_tcp_communication` library. This is because the official repository has known issues regarding data reception and conversion. We have submitted a **Pull Request** to the original repository but have not yet received a response. To ensure smooth operation of this project, we recommend using the version provided in this link.
+**NOTE:** ROS-TCP-Endpoint has some errors. We have submitted a pull request but have not received any feedback yet. Therefore, users are required to modify it when using it.
 
-**Key Modifications:** The main adjustments were made in two places:
+**Key Modifications:**
 
-a) In `server.py`, the decoding line was updated to **`message_json = data.decode("utf-8")`** to correctly handle incoming data encoding.
+a) In `server.py`, the decoding line  **`message_json = data.decode("utf-8")[:-1]`** should be replaced with **`message_json = data.decode("utf-8")`**
 
-b) We added a custom file, **`ros_msg_converter.py`**, to ensure the signals are correctly translated and interpreted.
+b) Copy the `ros_msg_converter.py` and `publisher.py` from `Files_for_ros_tcp` to replace the two files with the same names in the `ROS-TCP-Endpoint` repository.
 
-Remember to change the IP address within the library to your device's IP before use.
+c) In `server.py` and `endpoint.py`,Update the ROS_IP variable to your device's actual IP address
 
 
 3. Install and configure `quest2ros` on your VR headset.
@@ -41,7 +41,7 @@ Follow instructions at: `https://quest2ros.github.io/`
 
 `ros2 pkg create quest2ros --build-type ament_python`
 
-Copy the `.msg` files into `msg/` and rebuild.
+Copy the `.msg` files from `msg`  into `msg/` and rebuild.
 
 
 ## Demo
@@ -66,8 +66,8 @@ On the Meta Quest headset, start the `quest2ros` app and set the correct IP.
 Control the left or right arm via:
 
 ```
-ros2 run q2r_bringup Q2R_control_goal_left.py
-ros2 run q2r_bringup Q2R_control_goal_right.py
+ros2 run q2r_bringup left_arm_controller.py
+ros2 run q2r_bringup right_arm_controller.py
 ```
 
 ### Expected Output
@@ -76,9 +76,8 @@ ros2 run q2r_bringup Q2R_control_goal_right.py
 
 - Real-time motion following VR hand controllers.
 
-- Button presses (A = right, X = left) temporarily disable robot arm movement until released.
+- Lower-Button presses (A = right, X = left) toggle the robot arm movement. (Press once to enable, press again to disable.)
 
-- Demo video coming soon.
 
 ## Instructions for Use
 
@@ -89,6 +88,12 @@ To verify VR → ROS communication:
 `ros2 run q2r_bringup CheckTCPconnection.py`
 
 This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/orientation.
+
+### Button functions
+
+- Upper Button: Toggles Gripper state (Open/Close)
+
+- Lower Button: Pauses/Resumes pose streaming and performs an Anchor Reset. This immediately snaps the virtual target back to the robot's current position, eliminating movement jumps caused by kinematic limits or drift.
 
 ### Customization
 
