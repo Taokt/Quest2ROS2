@@ -34,7 +34,7 @@ with:
 
 `message_json = data.decode("utf-8")`
 
-b) In both `ROS-TCP-Endpoint/ros_tcp_endpoint/server.py` and `ROS-TCP-Endpoint/launch/endpoint.py`, update the `ROS_IP` variable to match your device's actual IP address.
+b) In both `ROS-TCP-Endpoint/ros_tcp_endpoint/server.py` and `ROS-TCP-Endpoint/launch/endpoint.py`, update the `ROS_IP` variable from "0.0.0.0" to match your device's actual IP address.
 
 c) Copy the `ros_msg_converter.py` and `publisher.py` from `Files_for_ros_tcp` folder in the `quest2ros2` repository, and replace the files with the same names in the `ROS-TCP-Endpoint` repository.
 
