@@ -30,7 +30,7 @@ a) In `server.py`, the decoding line was updated to **`message_json = data.decod
 
 b) Copy the `ros_msg_converter.py` and `publisher.py` from `Files_for_ros_tcp` to the root directory of the cloned `ROS-TCP-Endpoint` repository.
 
-c) In `server.py`,Update the ROS_IP variable to your device's actual IP address
+c) In `server.py` and `endpoint.py`,Update the ROS_IP variable to your device's actual IP address
 
 
 3. Install and configure `quest2ros` on your VR headset.
@@ -78,7 +78,6 @@ ros2 run q2r_bringup right_arm_controller.py
 
 - Lower-Button presses (A = right, X = left) temporarily disable robot arm movement until released.
 
-- Demo video coming soon.
 
 ## Instructions for Use
 
