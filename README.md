@@ -1,5 +1,5 @@
 # Quest2ros2
-A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely control a robot system through ROS 2 and ROS–TCP communication.
+A framework for using Meta Quest 2/3 VR controllers `quest2ros` to teleoperate a robot system through ROS 2 and ROS–TCP communication. The original controller nodes are designed based on Cartisian End-Effector control objective. Ideally, a corresponding ROS 2 controller implementing this objective should already be running before launching the nodes.
 
 
 ## System Requirements
@@ -9,6 +9,8 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 - ROS 2 Humble
 ### VR Hardware
 - Meta Quest 2 / Quest 3 headset with hand controllers
+### Prerequisites
+The robot must have a ROS 2 controller that supports **Cartesian end-effector control objectives**  
 
 
 ## Setup and Configuration
