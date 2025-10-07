@@ -86,6 +86,8 @@ On your VR headset, open the Quest2ROS app, set your device’s IP address (<YOU
 
 `ros2 run q2r_bringup ros2quest.py`
 
+This node is used to confirm whether the right-hand controller is connected properly. If you want to test the left-hand controller, please change the subscribed topic from `/q2r_right_hand_pose` to `/q2r_left_hand_pose`
+
 ## Demo
 
 ### Launch Robot Simulation
