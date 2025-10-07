@@ -73,7 +73,8 @@ Then copy the `.msg` files from `quest2ros2/msg` into the newly created `quest2r
 
 `ros2 launch ros_tcp_endpoint endpoint.py`
 
-7. Set your device’s IP address (<YOUR_IP>) and the same port number in the Quest2ros app of VR headset, then press Apply.
+7. Configure the connection in the Quest2ROS app
+On your VR headset, open the Quest2ROS app, set your device’s IP address (<YOUR_IP>) and the same port number as defined in endpoint.py, then press Apply to confirm.
 
 8. Run ros2quest demo
 
