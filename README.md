@@ -85,9 +85,9 @@ source install/setup.bash
 
 On your VR headset, open the Quest2ROS app, set your device’s IP address (<YOUR_IP>) and the same port number as defined in endpoint.py, then press Apply to confirm.
 
-9. Run ros2quest
+9. Run CheckTCPconnection
 
-`ros2 run q2r_bringup ros2quest.py`
+`ros2 run q2r_bringup CheckTCPconnection`
 
 This node is used to confirm whether the right-hand controller is connected properly. To test the left-hand controller instead, change the subscribed topic from `/q2r_right_hand_pose` to `/q2r_left_hand_pose`.
 
@@ -96,8 +96,8 @@ This node is used to confirm whether the right-hand controller is connected prop
 Running the code, move the handle to control the movement of the robotic arm
 
 ```
-ros2 run q2r_bringup left_arm_controller.py
-ros2 run q2r_bringup right_arm_controller.py
+ros2 run q2r_bringup left_arm_controller
+ros2 run q2r_bringup right_arm_controller
 ```
 
 ## Running and Interaction
