@@ -1,5 +1,5 @@
 # Quest2ros2
-A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely control a KUKA dual-arm robot through ROS 2 and ROS–TCP communication.
+A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely control a robot system through ROS 2 and ROS–TCP communication.
 
 
 ## System Requirements
@@ -9,8 +9,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 - ROS 2 Humble
 ### VR Dependencies
 - Meta Quest 2 / Quest 3 headset with hand controllers
-### Robot platform
-- KUKA dual-arm robot
+
 
 ## Installation Guide
 
@@ -20,20 +19,27 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 
 2. Clone and configure [ROS-TCP-Endpoint](https://github.com/Unity-Technologies/ROS-TCP-Endpoint)
 
-`git clone git@github.com:guguroro/ros_tcp_communication.git`
+`https://github.com/Unity-Technologies/ROS-TCP-Endpoint.git`
 
-**NOTE:** ROS-TCP-Endpoint has some errors. We have submitted a pull request but have not received any feedback yet. Therefore, users are required to modify it when using it.
+and switch to `main-ros2` branch.
 
-**Key Modifications:**
-
-a) In `server.py`, the decoding line  **`message_json = data.decode("utf-8")[:-1]`** should be replaced with **`message_json = data.decode("utf-8")`**
-
-b) Copy the `ros_msg_converter.py` and `publisher.py` from `Files_for_ros_tcp` to replace the two files with the same names in the `ROS-TCP-Endpoint` repository.
-
-c) In `server.py` and `endpoint.py`,Update the ROS_IP variable to your device's actual IP address
+**NOTE:** As of September 2025, the official ROS–TCP–Endpoint repository is not fully compatible with our current implementation due to several unresolved issues. Since the fix has not yet been merged into the `main-ros2` branch, please apply the following manual changes to ensure compatibility.
 
 
-3. Install and configure `quest2ros` on your VR headset.
+a) In the `ROS-TCP-Endpoint/ros_tcp_endpoint/server.py`, replace:
+
+`message_json = data.decode("utf-8")[:-1]`
+
+with:
+
+`message_json = data.decode("utf-8")`
+
+b) In both `ROS-TCP-Endpoint/ros_tcp_endpoint/server.py` and `ROS-TCP-Endpoint/ros_tcp_endpoint/endpoint.py`, update the `ROS_IP` variable to match your device's actual IP address.
+
+c) Copy the `ros_msg_converter.py` and `publisher.py` from `Files_for_ros_tcp` folder in the `quest2ros2` repository, and and replace the files with the same names in the `ROS-TCP-Endpoint` repository.
+
+
+3. Install and configure `quest2ros` app on your VR headset.
 
 Follow instructions at: `https://quest2ros.github.io/`
 
@@ -43,6 +49,19 @@ Follow instructions at: `https://quest2ros.github.io/`
 
 Copy the `.msg` files from `msg`  into `msg/` and rebuild.
 
+5. Build your ROS 2 Humble workspace:
+
+`colcon build`
+
+6. Launch ROS–TCP Endpoint  
+
+`ros2 launch ros_tcp_endpoint endpoint.py`
+
+7. Set your device’s IP address (<YOUR_IP>) and the same port number in the Quest2ros app of VR headset, then press Apply.
+
+8. Run ros2quest demo
+
+`ros2 run q2r_bringup ros2quest.py`
 
 ## Demo
 
