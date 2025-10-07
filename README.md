@@ -28,7 +28,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 
 a) In `server.py`, the decoding line was updated to **`message_json = data.decode("utf-8")`** to correctly handle incoming data encoding.
 
-b) Place the `ros_msg_converter.py` and `publisher.py` into the root directory of the cloned ROS-TCP-Endpoint repository
+b) Copy the `ros_msg_converter.py` and `publisher.py` from `Files_for_ros_tcp` to the root directory of the cloned `ROS-TCP-Endpoint` repository.
 
 c) In `server.py`,Update the ROS_IP variable to your device's actual IP address
 
