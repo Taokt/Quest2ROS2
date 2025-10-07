@@ -19,7 +19,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 
 2. Clone and configure [ROS-TCP-Endpoint](https://github.com/Unity-Technologies/ROS-TCP-Endpoint)
 
-`https://github.com/Unity-Technologies/ROS-TCP-Endpoint.git`
+`git clone https://github.com/Unity-Technologies/ROS-TCP-Endpoint.git`
 
 and switch to `main-ros2` branch.
 
