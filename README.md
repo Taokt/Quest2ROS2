@@ -38,7 +38,7 @@ b) In both `ROS-TCP-Endpoint/ros_tcp_endpoint/server.py` and `ROS-TCP-Endpoint/l
 
 c) Copy the `ros_msg_converter.py` and `publisher.py` from `Files_for_ros_tcp` folder in the `quest2ros2` repository, and replace the files with the same names in the `ROS-TCP-Endpoint` repository.
 
-d) Rebuild `ros-tcp-endpoint package` to apply the changes:
+d) Rebuild `ros-tcp-endpoint` package to apply the changes:
 
 ```
 colcon build --packages-select ros_tcp_endpoint
