@@ -22,7 +22,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 
 `git clone git@github.com:guguroro/ros_tcp_communication.git`
 
-**NOTE:** ROS-TCP-Endpoint has some errors. We have submitted a pull request but have not received any feedback yet. Therefore, users are required to modify it themselves when using it.
+**NOTE:** ROS-TCP-Endpoint has some errors. We have submitted a pull request but have not received any feedback yet. Therefore, users are required to modify it when using it.
 
 **Key Modifications:** The main adjustments were made in three places:
 
