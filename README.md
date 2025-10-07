@@ -1,6 +1,5 @@
 # Quest2ros2
-A framework for using Meta Quest 2/3 VR controllers `quest2ros` to teleoperate a robot system through ROS 2 and ROS–TCP communication. The original controller nodes are designed based on Cartisian End-Effector control objective. Ideally, a corresponding ROS 2 controller implementing this objective should already be running before launching the nodes.
-
+A framework for using Meta Quest 2/3 VR controllers `quest2ros` to teleoperate a robot system through ROS 2 and ROS–TCP communication. 
 
 ## System Requirements
 ### Operating Systems
@@ -10,7 +9,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to teleoperate a
 ### VR Hardware
 - Meta Quest 2 / Quest 3 headset with hand controllers
 ### Prerequisites
-- The robot must have a ROS 2 controller that supports **Cartesian end-effector control objectives**  
+- The robot must have a ROS 2 controller that supports **Cartesian end-effector control**.
 
 
 ## Setup and Configuration
@@ -124,7 +123,8 @@ Ensure your physical robot, RViz visualization, and motion controller are all ru
 
 - Lower Button : Toggles the robot arm movement (each press switches between enable and disable), and also pauses/resumes pose streaming while performing an Anchor Reset that snaps the virtual target back to the robot’s current position to prevent movement jumps due to kinematic limits or drift.
 
-
+### Change to "Mirror" Mode
+- Change the control mode to "Mirror" by set `self.mirror` to `True` in the `__init__` method of `BaseArmController` class inside `robot_arm_controller_base.py`. For more information please refer to the report.
 
 
 ## Debugging and Simulation

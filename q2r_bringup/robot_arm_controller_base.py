@@ -34,6 +34,7 @@ class BaseArmController(Node):
         self.robot_type = robot_type
 
         # Configure robot-specific parameters based on type and arm side
+        self.mirror = False
         self._configure_robot_params()
 
 
@@ -108,22 +109,39 @@ class BaseArmController(Node):
         elif self.robot_type == "kuka":
             self.base_frame_id = "bh_robot_base" 
 
-            if self.arm_name == "left":
-                self.end_effector_link_name = "left_arm_link_ee"
-                controller_prefix = "/bh_robot/left_arm_clik_controller"
-                self.quest_pose_topic = "/q2r_left_hand_pose"
-                self.quest_inputs_topic = "/q2r_left_hand_inputs"
-                self.gripper_action_topic = "/bh_robot/left_arm_gripper_action_controller/gripper_cmd"
-            elif self.arm_name == "right":
-                self.end_effector_link_name = "right_arm_link_ee" 
-                controller_prefix = "/bh_robot/right_arm_clik_controller" 
-                self.quest_pose_topic = "/q2r_right_hand_pose"
-                self.quest_inputs_topic = "/q2r_right_hand_inputs"
-                self.gripper_action_topic = "/bh_robot/right_arm_gripper_action_controller/gripper_cmd"
+            if self.mirror:
+                if self.arm_name == "left":
+                    self.end_effector_link_name = "left_arm_link_ee"
+                    controller_prefix = "/bh_robot/left_arm_clik_controller"
+                    self.gripper_action_topic = "/bh_robot/left_arm_gripper_action_controller/gripper_cmd"
+                    self.quest_pose_topic = "/q2r_right_hand_pose"
+                    self.quest_inputs_topic = "/q2r_right_hand_inputs"
+                elif self.arm_name == "right":
+                    self.end_effector_link_name = "right_arm_link_ee" 
+                    controller_prefix = "/bh_robot/right_arm_clik_controller" 
+                    self.gripper_action_topic = "/bh_robot/right_arm_gripper_action_controller/gripper_cmd"
+                    self.quest_pose_topic = "/q2r_left_hand_pose"
+                    self.quest_inputs_topic = "/q2r_left_hand_inputs"
+                else:
+                    self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Unknown KUKA arm name: {self.arm_name}。Expected 'left' or 'right'.")
+                    raise ValueError(f"Unknown KUKA arm name: {self.arm_name}. Expected 'left' or 'right'. ")
             else:
-                self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Unknown KUKA arm name: {self.arm_name}。Expected 'left' or 'right'.")
-                raise ValueError(f"Unknown KUKA arm name: {self.arm_name}. Expected 'left' or 'right'. ")
-
+                if self.arm_name == "left":
+                    self.end_effector_link_name = "left_arm_link_ee"
+                    controller_prefix = "/bh_robot/left_arm_clik_controller"
+                    self.gripper_action_topic = "/bh_robot/left_arm_gripper_action_controller/gripper_cmd"
+                    self.quest_pose_topic = "/q2r_left_hand_pose"
+                    self.quest_inputs_topic = "/q2r_left_hand_inputs"
+                elif self.arm_name == "right":
+                    self.end_effector_link_name = "right_arm_link_ee" 
+                    controller_prefix = "/bh_robot/right_arm_clik_controller" 
+                    self.gripper_action_topic = "/bh_robot/right_arm_gripper_action_controller/gripper_cmd"
+                    self.quest_pose_topic = "/q2r_right_hand_pose"
+                    self.quest_inputs_topic = "/q2r_right_hand_inputs"
+                else:
+                    self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Unknown KUKA arm name: {self.arm_name}。Expected 'left' or 'right'.")
+                    raise ValueError(f"Unknown KUKA arm name: {self.arm_name}. Expected 'left' or 'right'. ")
+                
             # Final command topic for the chosen arm's controller
             self.robot_target_pose_topic = controller_prefix + topic_name_suffix
 
