@@ -13,9 +13,9 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Jialong Li, Zhenguo Wang, Tianci Wang',
-    maintainer_email='jialong.li@cs.lth.se',
-    description='A framework for using Meta Quest 2/3 VR controllers quest2ros to remotely control a KUKA dual-arm robot through ROS 2 and ROS–TCP communication.',
+    maintainer='The Authors',
+    maintainer_email='anon.author@anon.org',
+    description='A framework for using VR controllers to remotely control robot system through ROS 2 and ROS–TCP communication.',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
