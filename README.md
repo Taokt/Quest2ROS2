@@ -87,7 +87,11 @@ On your VR headset, open the Quest2ROS app, set your device’s IP address (<YOU
 
 9. Run CheckTCPconnection
 
-`ros2 run q2r_bringup CheckTCPconnection`
+To verify VR → ROS communication:
+
+`ros2 run q2r_bringup CheckTCPconnection.py`
+
+This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/orientation.
 
 This node is used to confirm whether the right-hand controller is connected properly. To test the left-hand controller instead, change the subscribed topic from `/q2r_right_hand_pose` to `/q2r_left_hand_pose`.
 
@@ -121,43 +125,6 @@ Ensure your physical robot, RViz visualization, and motion controller are all ru
 - Lower Button: Pauses/Resumes pose streaming and performs an Anchor Reset. This immediately snaps the virtual target back to the robot's current position, eliminating movement jumps caused by kinematic limits or drift.
 
 
-
-
-
-
-
-
-
-
-
-## Instructions for Use
-
-### Check TCP Connection
-
-To verify VR → ROS communication:
-
-`ros2 run q2r_bringup CheckTCPconnection.py`
-
-This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/orientation.
-
-### Button functions
-
-- Upper Button: Toggles Gripper state (Open/Close)
-
-- Lower Button: Pauses/Resumes pose streaming and performs an Anchor Reset. This immediately snaps the virtual target back to the robot's current position, eliminating movement jumps caused by kinematic limits or drift.
-
-### Customization
-
-- Update `group_name`, `link_name`, and `frame_id` to match your robot setup.
-
-- Update `namespace` (e.g. replace `bh_robot` with your namespace).
-
-
-
-### Notes
-
-- Create a separate package for message types, otherwise `quest2ros2` cannot find them.
-- If the robot arm jitters during control, recalibrate the robot’s sensors.
 
 ## Debugging and Simulation
 ### VR Input Simulator:SimulationInpt.py
