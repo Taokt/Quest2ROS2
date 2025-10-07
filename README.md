@@ -89,13 +89,13 @@ On your VR headset, open the Quest2ROS app, set your device’s IP address (<YOU
 
 To verify VR → ROS communication:
 
-`ros2 run q2r_bringup CheckTCPconnection.py`
+`ros2 run q2r_bringup CheckTCPconnection`
 
 This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/orientation.
 
 This node is used to confirm whether the right-hand controller is connected properly. To test the left-hand controller instead, change the subscribed topic from `/q2r_right_hand_pose` to `/q2r_left_hand_pose`.
 
-10.Run left_arm_controller.py and right_arm_controller.py
+10. Run left_arm_controller.py and right_arm_controller.py
 
 Running the code, move the handle to control the movement of the robotic arm
 
@@ -133,4 +133,4 @@ The file SimulationInpt.py is a VR Input Simulator. It publishes fixed input and
 
 ### How to run
 
-`ros2 run q2r_bringup SimulationInpt.py`
+`ros2 run q2r_bringup SimulationInpt`
