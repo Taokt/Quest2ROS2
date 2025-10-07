@@ -40,10 +40,10 @@ c) Copy the `ros_msg_converter.py` and `publisher.py` from `Files_for_ros_tcp` f
 
 d) Rebuild `ros-tcp-endpoint package` to apply the changes:
 
-`
+```
 colcon build --packages-select ros_tcp_endpoint
 source install/setup.bash
-`
+```
 
 
 3. Install and configure `quest2ros` app on your VR headset.
