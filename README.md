@@ -82,7 +82,7 @@ source install/setup.bash
 
 On your VR headset, open the Quest2ROS app, set your device’s IP address (<YOUR_IP>) and the same port number as defined in endpoint.py, then press Apply to confirm.
 
-9. Run ros2quest demo
+9. Run ros2quest
 
 `ros2 run q2r_bringup ros2quest.py`
 
