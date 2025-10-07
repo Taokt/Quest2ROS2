@@ -23,7 +23,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to remotely cont
 
 and switch to `main-ros2` branch.
 
-**NOTE:** As of September 2025, the official ROS–TCP–Endpoint repository is not fully compatible with our current implementation due to several unresolved issues. Since the fix has not yet been merged into the `main-ros2` branch, please apply the following manual changes to ensure compatibility.
+**NOTE:** As of September 2025, the official ROS–TCP–Endpoint repository is not fully compatible with our current implementation due to several unresolved issues. Please apply the following manual changes to ensure compatibility.
 
 
 a) In the `ROS-TCP-Endpoint/ros_tcp_endpoint/server.py`, replace:
