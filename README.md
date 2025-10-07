@@ -10,7 +10,7 @@ A framework for using Meta Quest 2/3 VR controllers `quest2ros` to teleoperate a
 ### VR Hardware
 - Meta Quest 2 / Quest 3 headset with hand controllers
 ### Prerequisites
-The robot must have a ROS 2 controller that supports **Cartesian end-effector control objectives**  
+- The robot must have a ROS 2 controller that supports **Cartesian end-effector control objectives**  
 
 
 ## Setup and Configuration
