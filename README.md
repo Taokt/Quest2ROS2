@@ -66,7 +66,7 @@ Then copy the `.msg` files from `quest2ros2/msg` into the newly created `quest2r
 
 5. Clone this project
 
-User should update the Base Frame ID, EEF Link Name, and ROS 2 Topic names within the `_configure_robot_params` in `robot_arm_controller_base.py` method to match your robot's setup. 
+User should update the Base Frame ID (`base_link`), EEF Link Name ((`left_arm_link_ee`, `right_arm_link_ee`)) , and ROS 2 Topic names within the `_configure_robot_params` in `robot_arm_controller_base.py` method to match your robot's setup. 
 
 Ensure you also customize the namespace (e.g., replacing bh_robot) in the controller topics to correctly address your specific robot's action servers.
 
@@ -90,6 +90,15 @@ On your VR headset, open the Quest2ROS app, set your device’s IP address (<YOU
 `ros2 run q2r_bringup ros2quest.py`
 
 This node is used to confirm whether the right-hand controller is connected properly. To test the left-hand controller instead, change the subscribed topic from `/q2r_right_hand_pose` to `/q2r_left_hand_pose`.
+
+10.Run left_arm_controller.py and right_arm_controller.py
+
+Running the code, move the handle to control the movement of the robotic arm
+
+```
+ros2 run q2r_bringup left_arm_controller.py
+ros2 run q2r_bringup right_arm_controller.py
+```
 
 ## Running and Interaction
 
