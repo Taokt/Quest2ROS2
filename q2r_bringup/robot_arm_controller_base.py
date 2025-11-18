@@ -34,7 +34,7 @@ class BaseArmController(Node):
         self.robot_type = robot_type
 
         # Configure robot-specific parameters based on type and arm side
-        self.mirror = False
+        self.mirror = True
         self._configure_robot_params()
 
 
