@@ -14,7 +14,10 @@
 	<depend>visualization_msgs</depend>
 	<depend>geometry_msgs</depend>
 	<depend>tf2_ros</depend>
-	<depend>quest2ros</depend>
+	<depend>control_msgs</depend>
+
+	<!-- Custom message dependency -->
+	<depend>quest2ros2_msg</depend>
 
 	<exec_depend>python3-numpy</exec_depend>
 	<exec_depend>python3-tf-transformations</exec_depend>
