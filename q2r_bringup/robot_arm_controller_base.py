@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, Quaternion, Pose, TransformStamped, Point
-from quest2ros.msg import OVR2ROSInputs
+from quest2ros2_msg.msg import OVR2ROSInputs
 from visualization_msgs.msg import Marker
 from std_msgs.msg import ColorRGBA
 from tf2_ros import TransformListener, Buffer

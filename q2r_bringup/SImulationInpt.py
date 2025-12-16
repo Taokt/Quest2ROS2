@@ -1,8 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-# from quest2ros.msg import OVR2ROSInputs, OVR2ROSHapticFeedback
-from base_interfaces_demo.msg import OVR2ROSInputs, OVR2ROSHapticFeedback
+from quest2ros2_msg.msg import OVR2ROSInputs, OVR2ROSHapticFeedback
 from geometry_msgs.msg import PoseStamped, Twist
 
 class Talker(Node):
