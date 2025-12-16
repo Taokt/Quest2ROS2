@@ -1,5 +1,6 @@
 # Quest2ROS2
-A framework for using Meta Quest 2/3 VR controllers to teleoperate a robot system through ROS2 and ROS–TCP communication. 
+A framework for using Meta Quest 2/3 VR controllers to teleoperate a robot system through ROS2 and ROS–TCP communication. Built based on [Quest2ROS](https://quest2ros.github.io/).
+*Accepted to **HRI 2026***
 
 ## System Requirements
 ### Operating Systems
@@ -14,7 +15,7 @@ A framework for using Meta Quest 2/3 VR controllers to teleoperate a robot syste
 
 ## Setup and Configuration
 
-1. For the VR device, install and configure the `quest2ros` app on your VR headset. Follow instructions at: `https://quest2ros.github.io/`
+1. For the VR device, install and configure the `quest2ros` app on your VR headset. Follow instructions at: [Quest2ROS](https://quest2ros.github.io/)
 
 2. On PC side, install ROS2 Humble on Ubuntu: `https://docs.ros.org/en/humble/Installation.html`, make sure to install Python modules numpy and tf_transformation.
 
