@@ -5,7 +5,7 @@
 	<version>1.0.0</version>
 	<description>A framework for using VR controllers to remotely control robot system through ROS 2 and ROS–TCP communication.</description>
 
-	<maintainer email="anon.author@anon.org">The Authors</maintainer>
+	<maintainer email="jialong.li@cs.lth.se">JialongLi</maintainer>
 	<license>Apache-2.0</license>
 
 	<depend>rclpy</depend>
@@ -20,7 +20,7 @@
 	<depend>quest2ros2_msg</depend>
 
 	<exec_depend>python3-numpy</exec_depend>
-	<exec_depend>python3-tf-transformations</exec_depend>
+	<exec_depend>tf_transformations</exec_depend>
 
 	<test_depend>ament_copyright</test_depend>
 	<test_depend>ament_flake8</test_depend>
