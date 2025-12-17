@@ -2,9 +2,7 @@
 A framework for using Meta Quest 2/3 VR controllers to teleoperate a robot system through ROS2 and ROS–TCP communication. Built based on [Quest2ROS](https://quest2ros.github.io/).\
 *Accepted to **HRI 2026***
 
-https://github.com/user-attachments/assets/eaee35e0-a4f4-4563-8023-079e6eb747f9
-
-
+https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
 
 ## System Requirements
 ### Operating Systems
