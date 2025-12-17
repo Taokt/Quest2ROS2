@@ -3,7 +3,7 @@
 <package format="3">
 	<name>q2r_bringup</name>
 	<version>1.0.0</version>
-	<description>A framework for using VR controllers to remotely control robot system through ROS 2 and ROS–TCP communication.</description>
+	<description>A framework for using Meta Quest 2/3 VR controllers to teleoperate a robot system through ROS2 and ROS–TCP communication.</description>
 
 	<maintainer email="jialong.li@cs.lth.se">JialongLi</maintainer>
 	<license>Apache-2.0</license>
