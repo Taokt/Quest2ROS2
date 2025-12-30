@@ -2,16 +2,21 @@ import rclpy
 from .robot_arm_controller_base import BaseArmController
 
 class RightArmController(BaseArmController):
-    def __init__(self):
+    def __init__(self, mirror=False):
         super().__init__(
-            arm_name='right',
-            robot_type='kuka' # Specify the robot type here
+            target_arm='right', # 'right' maps to Hugin (Physical Right Arm)
+            mirror=mirror
         )
 
 def main(args=None):
     rclpy.init(args=args)
-    node = RightArmController()
+    
+    # Normal Mode: Right Hand -> Right Robot (Hugin)
+    # Mirror Mode: Left Hand -> Right Robot (Hugin)
+    node = RightArmController(mirror=True)
+    
     rclpy.spin(node)
+    node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == "__main__":

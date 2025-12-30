@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import threading
 
-from quest2ros2_msg.msg import OVR2ROSInputs, OVR2ROSHapticFeedback
+from quest2ros.msg import OVR2ROSInputs, OVR2ROSHapticFeedback
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.executors import ExternalShutdownException
 
