@@ -42,7 +42,7 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
     **NOTE:** The package must be named `quest2ros_msg`, as VR headset only subscribes to messages under this package name.
 
     ```
-    ros2 pkg create --build-type ament_cmake quest2ros2_msg
+    ros2 pkg create --build-type ament_cmake quest2ros_msg
     ```
 
     This command generates an empty package named `quest2ros_msg`.
