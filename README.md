@@ -35,7 +35,7 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
 
     `source install/setup.bash`
 
-
+    In both `ros_tcp_communication/ros_tcp_endpoint/server.py` and `ros_tcp_communication/launch/endpoint.py`, update the ROS_IP variable from the default "0.0.0.0" to match your robot's actual IP address.
 
 Unlike ROS1, ROS2 perfer custom message to be in a sepreate package (https://docs.ros.org/en/crystal/Tutorials/Custom-ROS2-Interfaces.html), so the next step is to create the custom messages for our Quest2ROS2 package.
 
