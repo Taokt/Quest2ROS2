@@ -21,24 +21,21 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
 
 2. On PC side, install ROS2 Humble on Ubuntu: `https://docs.ros.org/en/humble/Installation.html`, make sure to install Python modules numpy and tf_transformation.
 
-3. Assume the workspace path is `workspace`, go to `workspace/src`, Clone and configure [ROS-TCP-Endpoint](https://github.com/Unity-Technologies/ROS-TCP-Endpoint)
-`git clone https://github.com/Unity-Technologies/ROS-TCP-Endpoint.git` and do `cd ROS-TCP-Endpoint` follow with `git switch main-ros2` to switch to the `main-ros2` branch.
+3. Assume the workspace path is `workspace`, go to `workspace/src`, clone this project with `git clone https://github.com/Taokt/Quest2ROS2.git`
 
-4. Under `workspace/src`, clone this project with `git clone https://github.com/Taokt/Quest2ROS2.git`
+5. **NOTE:** The upstream `ROS–TCP–Endpoint` repository is not fully compatible with our current implementation. To avoid manual patching and reproduction issues, please use our maintained package `ros_tcp_communication` instead.
 
-5. **NOTE:** As of September 2025, the official ROS–TCP–Endpoint repository is not fully compatible with our current implementation due to several unresolved issues. Please apply the following manual changes to ensure compatibility.
+    Under `workspace/src`, install & build:
 
-    - In line 125 of the file `ROS-TCP-Endpoint/ros_tcp_endpoint/server.py`, replace: `message_json = data.decode("utf-8")[:-1]` with `message_json = data.decode("utf-8")`
+    `git clone https://github.com/guguroro/ros_tcp_communication.git`
 
-    - In both `ROS-TCP-Endpoint/ros_tcp_endpoint/server.py` and `ROS-TCP-Endpoint/launch/endpoint.py`, update the `ROS_IP` variable from the default `"0.0.0.0"` to match your robot's actual IP address.
+    `cd ..`
 
-    - Under path `/src`, do `cp Quest2ROS2/Files_for_ros_tcp/* ROS-TCP-Endpoint/ros_tcp_endpoint` to replace the files with the same names.
+    `colcon build --packages-select ros_tcp_communication`
 
-    - Rebuild `ros-tcp-endpoint` package to apply the changes:
-```
-colcon build --packages-select ros_tcp_endpoint
-source install/setup.bash
-```
+    `source install/setup.bash`
+
+
 
 Unlike ROS1, ROS2 perfer custom message to be in a sepreate package (https://docs.ros.org/en/crystal/Tutorials/Custom-ROS2-Interfaces.html), so the next step is to create the custom messages for our Quest2ROS2 package.
 
