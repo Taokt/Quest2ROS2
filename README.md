@@ -38,7 +38,7 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
     In `ros_tcp_communication/launch/endpoint.py`, update the ROS_IP variable in the launch file from the default "0.0.0.0" to match your robot's actual IP address.
 
 5.  The `Quest2ROS` application only looking for ros2 message with the specific package name `quest2ros`, therefore one would have to create a seperate package for the the custom messages definitions. 
-    Under `/src`, create a new ROS 2 package as
+    Under `/src`, create a new ROS2 package as
 
     ```
     ros2 pkg create --build-type ament_cmake quest2ros
@@ -52,51 +52,83 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
     cp -r Quest2ROS2/Files_for_msg_pkg/* quest2ros/
     ```
 
-6. Configure this project: User should update the Base Frame ID (`base_link`), End-Effector Link Name ((`left_arm_link_ee`, `right_arm_link_ee`)) , and ROS 2 Topic names within the `_configure_robot_params` in `robot_arm_controller_base.py` method to match your robot's setup. 
+6. Configure this project: 
 
-    Ensure you also customize the namespace (e.g., replacing bh_robot) in the controller topics to correctly address your specific robot's action servers.
+    All robot-specific parameters are explicitly exposed in `left_arm_controller.py` and `right_arm_controller.py`. Users should modify the constructor arguments in these two files to match their robot setup.
+
+    The key parameters to customize include:
+    - `robot_name`: your robot type or model name (e.g. kuka)
+    - `arm_name`: arm identifier (e.g. left or right)
+    - `base_frame_id`: root reference frame of the robot (e.g. bh_robot_base)
+    - `end_effector_link_name`: end-effector link name for each arm
+    - `ctrl_prefix`: namespace of the arm inverse kinematics controller
+    - `gripper_action_topic`: action server topic for gripper control
+    - `filter_window_size`: moving average filter size for motion smoothing
+    - `mirror`: whether to mirror controller input between two arms
 
 7. Build your ROS2 Humble workspace:
 
-```
-colcon build
-source install/setup.bash
-```
+    ```
+    colcon build
+    source install/setup.bash
+    ```
 
-8. Quick varify: One way to varify the success building of `Quest2ROS2` package is to try run VR input simulator inclueded in file `simulationInput.py`. It publishes some simulated input and velocity data (OVR2ROSInputs and Twist) at 1 Hz for testing purposes, allowing you to debug the package build status. Try it with:
-```
-ros2 run q2r_bringup simulationInput
-```
-If it successfully publishes data, one is safe to move to the nex step, which is to build the connection to the robot.
+8. Quick varify: One way to varify the success building of `Quest2ROS2` package is to try run VR input simulator inclueded in file `simulationInput.py`. It publishes simulated Quest controller data at 30 Hz, including button states, hand pose and velocity. Try it with:
+
+    ```
+    ros2 run q2r_bringup simulationInput
+    ```
+
+    Optional modes:
+    ```
+    # Simulate LEFT Hand:
+    ros2 run q2r2_bringup SimulationInput --ros-args -p side:=left
+
+    # Simulate Only Velocity (Twist) Mode:
+    ros2 run q2r2_bringup SimulationInput --ros-args -p mode:=velocity
+
+    # Simulate Left Hand with Only Teleop Data (Pose + Inputs):
+    ros2 run q2r2_bringup SimulationInput --ros-args -p side:=left -p mode:=teleop
+    ```
+
+    If you can see the topics publishing (e.g., via `ros2 topic list` or `ros2 topic echo`), you can proceed to the next step.
 
 9. Launch ROS–TCP Endpoint  
 
-```
-ros2 launch ros_tcp_endpoint endpoint.py
-```
+    ```
+    ros2 launch ros_tcp_endpoint endpoint.py
+    ```
 
 10. Configure the connection in the Quest2ROS app on the VR device.
 
-On your VR headset, open the Quest2ROS app, set your robot’s IP address (<YOUR_IP>) and the same port number as defined in `endpoint.py`, then press Apply to confirm.
+    On your VR headset, open the Quest2ROS app, set your robot’s IP address (<YOUR_IP>) and the same port number as defined in `endpoint.py`, then press Apply to confirm.
 
 11. Run CheckTCPconnection
 
-To verify VR → ROS communication:
+    To verify VR → ROS2 communication:
 
-`ros2 run q2r_bringup CheckTCPconnection`
+    `ros2 run q2r_bringup CheckTCPconnection`
 
-This subscribes to `/q2r_right_hand_pose` and shows the VR controller position/orientation.
+    This node subscribes to all Quest topics for both hands and all message types:
+    - `/q2r_left_hand_pose`
+    - `/q2r_left_hand_inputs` 
+    - `/q2r_left_hand_twist` 
+    - `/q2r_right_hand_pose` 
+    - `/q2r_right_hand_inputs` 
+    - `/q2r_right_hand_twist` 
 
-This node is used to confirm whether the right-hand controller is connected properly. To test the left-hand controller instead, change the subscribed topic from `/q2r_right_hand_pose` to `/q2r_left_hand_pose`.
+    If the connection is working, it prints the latest received values every second (pose / inputs / twist).
+
+    If no messages are received more than 2 seconds, it reports a timeout.
 
 12. Run left_arm_controller.py and right_arm_controller.py
 
-Running the code, move the handle to control the movement of the robotic arm
+    Running the code, move the handle to control the movement of the robotic arm
 
-```
-ros2 run q2r_bringup left_arm_controller
-ros2 run q2r_bringup right_arm_controller
-```
+    ```
+    ros2 run q2r_bringup left_arm_controller
+    ros2 run q2r_bringup right_arm_controller
+    ```
 
 ## Running and Interaction
 
