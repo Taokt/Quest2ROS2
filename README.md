@@ -35,22 +35,21 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
 
     `source install/setup.bash`
 
-    In both `ros_tcp_communication/ros_tcp_endpoint/server.py` and `ros_tcp_communication/launch/endpoint.py`, update the ROS_IP variable from the default "0.0.0.0" to match your robot's actual IP address.
+    In `ros_tcp_communication/launch/endpoint.py`, update the ROS_IP variable in the launch file from the default "0.0.0.0" to match your robot's actual IP address.
 
-5.  Under `/src`, create a new ROS 2 package for the custom messages definitions.
-
-    **NOTE:** The package must be named `quest2ros_msg`, as VR headset only subscribes to messages under this package name.
+5.  The `Quest2ROS` application only looking for ros2 message with the specific package name `quest2ros`, therefore one would have to create a seperate package for the the custom messages definitions. 
+    Under `/src`, create a new ROS 2 package as
 
     ```
-    ros2 pkg create --build-type ament_cmake quest2ros_msg
+    ros2 pkg create --build-type ament_cmake quest2ros
     ```
 
-    This command generates an empty package named `quest2ros_msg`.
+    This command generates an empty package named `quest2ros`.
     Then copy the corrsponding required files into the newly created package:
 
     Under `/src`, do
     ```
-    cp -r Quest2ROS2/Files_for_msg_pkg/* quest2ros_msg/
+    cp -r Quest2ROS2/Files_for_msg_pkg/* quest2ros/
     ```
 
 6. Configure this project: User should update the Base Frame ID (`base_link`), End-Effector Link Name ((`left_arm_link_ee`, `right_arm_link_ee`)) , and ROS 2 Topic names within the `_configure_robot_params` in `robot_arm_controller_base.py` method to match your robot's setup. 
