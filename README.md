@@ -73,10 +73,10 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
     source install/setup.bash
     ```
 
-8. Quick varify: One way to varify the success building of `Quest2ROS2` package is to try run VR input simulator inclueded in file `simulationInput.py`. It publishes simulated Quest controller data at 30 Hz, including button states, hand pose and velocity. Try it with:
+8. Quick varify: One way to varify the success building of `Quest2ROS2` package is to try run VR input simulator inclueded in file `SimulationInput.py`. It publishes simulated Quest controller data at 30 Hz, including button states, hand pose and velocity. Try it with:
 
     ```
-    ros2 run q2r_bringup simulationInput
+    ros2 run q2r2_bringup SimulationInput
     ```
 
     Optional modes:
@@ -107,7 +107,7 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
 
     To verify VR → ROS2 communication:
 
-    `ros2 run q2r_bringup CheckTCPconnection`
+    `ros2 run q2r2_bringup CheckTCPconnection`
 
     This node subscribes to all Quest topics for both hands and all message types:
     - `/q2r_left_hand_pose`
@@ -126,8 +126,8 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
     Running the code, move the handle to control the movement of the robotic arm
 
     ```
-    ros2 run q2r_bringup left_arm_controller
-    ros2 run q2r_bringup right_arm_controller
+    ros2 run q2r2_bringup left_arm_controller
+    ros2 run q2r2_bringup right_arm_controller
     ```
 
 ## Running and Interaction
