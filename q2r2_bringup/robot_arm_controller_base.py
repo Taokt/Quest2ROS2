@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, Quaternion, Pose, TransformStamped, Point
-from quest2ros2_msg.msg import OVR2ROSInputs
+from quest2ros.msg import OVR2ROSInputs
 from visualization_msgs.msg import Marker
 from std_msgs.msg import ColorRGBA
 from tf2_ros import TransformListener, Buffer
@@ -17,27 +17,47 @@ from control_msgs.action import GripperCommand
 from collections import deque
 
 class BaseArmController(Node):
-    def __init__(self, arm_name: str, robot_type: str):
+    def __init__(self, arm_name: str, mirror: bool = False):
         """
         Base class for controlling a robot arm using Quest 3 inputs.
 
         Args:
             arm_name (str): Arm name, e.g., 'left' or 'right', used for logging and distinction.
-            robot_type (str): Robot type, e.g., 'kuka' or 'franka'.
+            mirror (bool): If True, maps the opposite hand controller to the arm 
+                           (e.g., right hand controls left arm). Defaults to False.
         """
-        
-        node_name_str = f"{arm_name}_{robot_type}_arm_controller"
-        super().__init__(node_name_str)
-        self._node_name = node_name_str 
+        #Initializing node
+        node_name = f"{arm_name}_kuka_arm_controller"
+        super().__init__(node_name)
+        self.get_logger().info(f"--- Initializing {node_name} ---")
 
+        #Key parameter
         self.arm_name = arm_name
-        self.robot_type = robot_type
+        self.robot_type = "kuka"
+        self.mirror = mirror
+        self.base_frame_id = "bh_robot_base" 
 
-        # Configure robot-specific parameters based on type and arm side
-        self.mirror = False
-        self._configure_robot_params()
+        # Initialize parameter and interface
+        self._init_parameters()
+        self._init_variables()
+        self._init_interfaces()
+        
+        self.commanded_trajectory_x = []
+        self.commanded_trajectory_y = []
+        self.commanded_trajectory_z = []
+        self.executed_trajectory_x = []
+        self.executed_trajectory_y = []
+        self.executed_trajectory_z = []
+        self.log_time = []
 
+    def _init_parameters(self):
+        #Moving-average filter configuration
+        self.declare_parameter("filter_window_size", 20)
+        self.filter_window_size = self.get_parameter("filter_window_size").value
+        self.position_history = deque(maxlen=self.filter_window_size)
+        self.orientation_history = deque(maxlen=self.filter_window_size)
 
+    def _init_variables(self):
         self.last_pose_stamped_always = None
         self.initial_orientation = None # Initial EEF orientation (from TF)
         self.initial_position = None    # Initial EEF position (from TF)
@@ -45,10 +65,36 @@ class BaseArmController(Node):
         self.first_received_quest_orientation = None # First Quest controller orientation
         self.current_robot_pose = None  # Current EEF position (from TF)
         self.allow_pose_update = True   # Enable/disable arm motion (toggled in inputs callback)
-
-        # Gripper state
-        self.is_gripper_closed = False
+        self.is_gripper_closed = False  # Gripper state
         
+    def _init_interfaces(self):
+        #Initialize publisher,subscriber,TF,gripper
+        if self.arm_name == "left":
+            self.end_effector_link_name = "left_arm_link_ee"
+            ctrl_prefix = "/bh_robot/left_arm_clik_controller"
+            self.gripper_action_topic = "/bh_robot/left_arm_gripper_action_controller/gripper_cmd"
+        else:
+            self.end_effector_link_name = "right_arm_link_ee"
+            ctrl_prefix = "/bh_robot/right_arm_clik_controller"
+            self.gripper_action_topic = "/bh_robot/right_arm_gripper_action_controller/gripper_cmd"
+
+        self.robot_target_pose_topic = f"{ctrl_prefix}/target_frame"
+
+        #Mirror
+        quest_side = ("right" if self.arm_name == "left" else "left") if self.mirror else self.arm_name
+        
+        self.quest_pose_topic = f"/q2r_{quest_side}_hand_pose"
+        self.quest_inputs_topic = f"/q2r_{quest_side}_hand_inputs"
+        self.get_logger().info(f"Ready. Listening to: {self.quest_pose_topic}")
+
+        # TF2 for frame transforms
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.get_logger().info(f"--- KUKA {self.arm_name.upper()} Initialized ---")
+        self.get_logger().info(f"Target Topic: {self.robot_target_pose_topic}")
+        self.get_logger().info(f"Handler: {quest_side} (Mirror: {self.mirror})")
+
+        #Subscriber
         self.pose_subscription = self.create_subscription(
             PoseStamped,
             self.quest_pose_topic,
@@ -62,102 +108,18 @@ class BaseArmController(Node):
             10
         )
 
+        #Publisher
         self.marker_pub = self.create_publisher(Marker, '/visualization_marker', 10)
         self.target_pose_publisher = self.create_publisher(PoseStamped, self.robot_target_pose_topic, 10)
-
-        # TF2 for frame transforms
-        self.tf_buffer = Buffer()
-        self.tf_listener = TransformListener(self.tf_buffer, self)
-
-        # Moving-average filter configuration
-        self.filter_window_size = 20 # Window length
-        self.position_history = deque(maxlen=self.filter_window_size)
-        self.orientation_history = deque(maxlen=self.filter_window_size)
 
         # Gripper action client
         self.gripper_action_client = ActionClient(self, GripperCommand, self.gripper_action_topic)
         self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Waiting for gripper action server: {self.gripper_action_topic}")
 
         self.get_logger().info(f'[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Ready to receive {self.quest_pose_topic} and publish to {self.robot_target_pose_topic}')
-        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Node name: {self._node_name}")
-
-        self.commanded_trajectory_x = []
-        self.commanded_trajectory_y = []
-        self.commanded_trajectory_z = []
-        self.executed_trajectory_x = []
-        self.executed_trajectory_y = []
-        self.executed_trajectory_z = []
-        self.log_time = []
 
 
-    def _configure_robot_params(self):
-        """
-        Configure robot-specific parameters (topics and TF frames) based on the
-        robot type and arm side.
-        """
-        topic_name_suffix = "/target_frame" 
 
-        if self.robot_type == "franka":
-            self.base_frame_id = "base"
-            self.end_effector_link_name = "fr3_hand_tcp"
-            controller_prefix = "/cartesian_impedance_controller"
-            self.quest_pose_topic = f"/q2r_{self.arm_name}_hand_pose" 
-            self.quest_inputs_topic = f"/q2r_{self.arm_name}_hand_inputs"
-            self.robot_target_pose_topic = controller_prefix + topic_name_suffix
-            self.gripper_action_topic = f"/franka_gripper/gripper_action" 
-
-        elif self.robot_type == "kuka":
-            self.base_frame_id = "bh_robot_base" 
-
-            if self.mirror:
-                if self.arm_name == "left":
-                    self.end_effector_link_name = "left_arm_link_ee"
-                    controller_prefix = "/bh_robot/left_arm_clik_controller"
-                    self.gripper_action_topic = "/bh_robot/left_arm_gripper_action_controller/gripper_cmd"
-                    self.quest_pose_topic = "/q2r_right_hand_pose"
-                    self.quest_inputs_topic = "/q2r_right_hand_inputs"
-                elif self.arm_name == "right":
-                    self.end_effector_link_name = "right_arm_link_ee" 
-                    controller_prefix = "/bh_robot/right_arm_clik_controller" 
-                    self.gripper_action_topic = "/bh_robot/right_arm_gripper_action_controller/gripper_cmd"
-                    self.quest_pose_topic = "/q2r_left_hand_pose"
-                    self.quest_inputs_topic = "/q2r_left_hand_inputs"
-                else:
-                    self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Unknown KUKA arm name: {self.arm_name}。Expected 'left' or 'right'.")
-                    raise ValueError(f"Unknown KUKA arm name: {self.arm_name}. Expected 'left' or 'right'. ")
-            else:
-                if self.arm_name == "left":
-                    self.end_effector_link_name = "left_arm_link_ee"
-                    controller_prefix = "/bh_robot/left_arm_clik_controller"
-                    self.gripper_action_topic = "/bh_robot/left_arm_gripper_action_controller/gripper_cmd"
-                    self.quest_pose_topic = "/q2r_left_hand_pose"
-                    self.quest_inputs_topic = "/q2r_left_hand_inputs"
-                elif self.arm_name == "right":
-                    self.end_effector_link_name = "right_arm_link_ee" 
-                    controller_prefix = "/bh_robot/right_arm_clik_controller" 
-                    self.gripper_action_topic = "/bh_robot/right_arm_gripper_action_controller/gripper_cmd"
-                    self.quest_pose_topic = "/q2r_right_hand_pose"
-                    self.quest_inputs_topic = "/q2r_right_hand_inputs"
-                else:
-                    self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Unknown KUKA arm name: {self.arm_name}。Expected 'left' or 'right'.")
-                    raise ValueError(f"Unknown KUKA arm name: {self.arm_name}. Expected 'left' or 'right'. ")
-                
-            # Final command topic for the chosen arm's controller
-            self.robot_target_pose_topic = controller_prefix + topic_name_suffix
-
-        else:
-            self.get_logger().error(
-            f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
-            f"Unknown robot type: '{self.robot_type}'. Supported: 'franka', 'kuka'."
-        )
-            raise ValueError(f"Unknown robot type: '{self.robot_type}'. Supported: 'franka', 'kuka'.")
-        
-        # Summarize the configuration
-        self.get_logger().info(
-            f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
-            f"Configured: base='{self.base_frame_id}', ee='{self.end_effector_link_name}', "
-            f"target_topic='{self.robot_target_pose_topic}'"
-            )
         
     def _get_robot_current_pose(self) -> (tuple[tuple[float, float, float], Quaternion]   | tuple[None, None]):
         """

@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'q2r_bringup'
+package_name = 'q2r2_bringup'
 
 setup(
     name=package_name,
@@ -20,11 +20,11 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'ros2quest = q2r_bringup.ros2quest:main',
-            'SimulationInput = q2r_bringup.SimulationInput:main',
-            'CheckTCPconnection = q2r_bringup.CheckTCPconnection:main',
-            'left_arm_controller = q2r_bringup.left_arm_controller:main',
-            'right_arm_controller = q2r_bringup.right_arm_controller:main',
+            'ros2quest = q2r2_bringup.ros2quest:main',
+            'SimulationInput = q2r2_bringup.SimulationInput:main',
+            'CheckTCPconnection = q2r2_bringup.CheckTCPconnection:main',
+            'left_arm_controller = q2r2_bringup.left_arm_controller:main',
+            'right_arm_controller = q2r2_bringup.right_arm_controller:main',
         ],
     },
 )
