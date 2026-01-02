@@ -17,7 +17,7 @@ from control_msgs.action import GripperCommand
 from collections import deque
 
 class BaseArmController(Node):
-    def __init__(self, arm_name: str, mirror: bool = False):
+    def __init__(self, arm_name: str,robot_name:str , mirror: bool, base_frame_id:str , filter_window_size: int , end_effector_link_name: str , ctrl_prefix: str , gripper_action_topic: str):
         """
         Base class for controlling a robot arm using Quest 3 inputs.
 
@@ -27,15 +27,22 @@ class BaseArmController(Node):
                            (e.g., right hand controls left arm). Defaults to False.
         """
         #Initializing node
-        node_name = f"{arm_name}_kuka_arm_controller"
+        node_name = f"{arm_name}_{robot_name}_arm_controller"
         super().__init__(node_name)
         self.get_logger().info(f"--- Initializing {node_name} ---")
 
         #Key parameter
         self.arm_name = arm_name
-        self.robot_type = "kuka"
+        self.robot_name = robot_name
         self.mirror = mirror
-        self.base_frame_id = "bh_robot_base" 
+        self.base_frame_id = base_frame_id
+        self.ctrl_prefix = ctrl_prefix
+        self.gripper_action_topic = gripper_action_topic
+
+        # Input param trans
+        self.filter_window_size = filter_window_size
+        self.end_effector_link_name = end_effector_link_name
+        
 
         # Initialize parameter and interface
         self._init_parameters()
@@ -52,12 +59,13 @@ class BaseArmController(Node):
 
     def _init_parameters(self):
         #Moving-average filter configuration
-        self.declare_parameter("filter_window_size", 20)
+        self.declare_parameter("filter_window_size", self.filter_window_size)
         self.filter_window_size = self.get_parameter("filter_window_size").value
         self.position_history = deque(maxlen=self.filter_window_size)
         self.orientation_history = deque(maxlen=self.filter_window_size)
 
     def _init_variables(self):
+        #Initial basic parameter
         self.last_pose_stamped_always = None
         self.initial_orientation = None # Initial EEF orientation (from TF)
         self.initial_position = None    # Initial EEF position (from TF)
@@ -69,15 +77,7 @@ class BaseArmController(Node):
         
     def _init_interfaces(self):
         #Initialize publisher,subscriber,TF,gripper
-        if self.arm_name == "left":
-            self.end_effector_link_name = "left_arm_link_ee"
-            ctrl_prefix = "/bh_robot/left_arm_clik_controller"
-            self.gripper_action_topic = "/bh_robot/left_arm_gripper_action_controller/gripper_cmd"
-        else:
-            self.end_effector_link_name = "right_arm_link_ee"
-            ctrl_prefix = "/bh_robot/right_arm_clik_controller"
-            self.gripper_action_topic = "/bh_robot/right_arm_gripper_action_controller/gripper_cmd"
-
+        ctrl_prefix = self.ctrl_prefix
         self.robot_target_pose_topic = f"{ctrl_prefix}/target_frame"
 
         #Mirror
@@ -90,7 +90,7 @@ class BaseArmController(Node):
         # TF2 for frame transforms
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
-        self.get_logger().info(f"--- KUKA {self.arm_name.upper()} Initialized ---")
+        self.get_logger().info(f"--- Robot {self.arm_name.upper()} Initialized ---")
         self.get_logger().info(f"Target Topic: {self.robot_target_pose_topic}")
         self.get_logger().info(f"Handler: {quest_side} (Mirror: {self.mirror})")
 
@@ -114,9 +114,9 @@ class BaseArmController(Node):
 
         # Gripper action client
         self.gripper_action_client = ActionClient(self, GripperCommand, self.gripper_action_topic)
-        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Waiting for gripper action server: {self.gripper_action_topic}")
+        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] Waiting for gripper action server: {self.gripper_action_topic}")
 
-        self.get_logger().info(f'[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Ready to receive {self.quest_pose_topic} and publish to {self.robot_target_pose_topic}')
+        self.get_logger().info(f'[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] Ready to receive {self.quest_pose_topic} and publish to {self.robot_target_pose_topic}')
 
 
 
@@ -146,7 +146,7 @@ class BaseArmController(Node):
             self.current_robot_pose = (current_x, current_y, current_z)
             return (current_x, current_y, current_z), current_orientation
         except Exception as e:
-            self.get_logger().warn(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] can not get current robot transformation: {e}")
+            self.get_logger().warn(f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] can not get current robot transformation: {e}")
             return None, None
             
     def _apply_moving_average_filter(self, pose_stamped: PoseStamped):
@@ -171,7 +171,7 @@ class BaseArmController(Node):
         # wait until the deques are full
         if len(self.position_history) < self.filter_window_size:
             self.get_logger().info(
-                f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
+                f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] "
                 f"Filling filter... ({len(self.position_history)}/{self.filter_window_size})"
             )            
         
@@ -185,7 +185,7 @@ class BaseArmController(Node):
         norm = np.linalg.norm(avg_orientation)
         if norm < 1e-9:
             self.get_logger().warning(
-                f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
+                f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] "
                 f"Average quaternion norm ~0; skipping this sample."
             )
             return None, None
@@ -224,7 +224,7 @@ class BaseArmController(Node):
             self.first_received_quest_position = avg_quest_pos_np # Use smoothed position
             self.first_received_quest_orientation = avg_quest_ori_np
             self.get_logger().info(
-                f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] "
+                f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] "
                 f"Anchored robot pose: pos={self.initial_position}, ori={self.initial_orientation}"
             )
             return 
@@ -263,7 +263,7 @@ class BaseArmController(Node):
         axes_marker = Marker()
         axes_marker.header.frame_id = self.base_frame_id
         axes_marker.header.stamp = self.get_clock().now().to_msg()
-        axes_marker.ns = f"{self.arm_name}_{self.robot_type}_target_axes"
+        axes_marker.ns = f"{self.arm_name}_{self.robot_name}_target_axes"
         axes_marker.id = 2
         axes_marker.type = Marker.LINE_LIST
         axes_marker.action = Marker.ADD
@@ -291,7 +291,7 @@ class BaseArmController(Node):
         target_pose_stamped.pose = target_pose
         self.target_pose_publisher.publish(target_pose_stamped)
         self.last_executed_target_pose = target_pose
-        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Published new target pose.")
+        self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] Published new target pose.")
     
     def _toggle_gripper(self):
         """
@@ -299,7 +299,7 @@ class BaseArmController(Node):
         the current state. Updates internal state after the action completes.
         """
         if not self.gripper_action_client.wait_for_server(timeout_sec=1.0):
-            self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Gripper action server not available.")
+            self.get_logger().error(f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] Gripper action server not available.")
             return
 
         goal_msg = GripperCommand.Goal()
@@ -307,11 +307,11 @@ class BaseArmController(Node):
         if self.is_gripper_closed:
             goal_msg.command.position = 0.0 # 0.0 Fully open
             goal_msg.command.max_effort = 5.0 
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Sending goal to open gripper...")
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] Sending goal to open gripper...")
         else:
             goal_msg.command.position = 0.05 # 0.05 Fully closed
             goal_msg.command.max_effort = 5.0 
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Sending goal to close gripper...")
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] Sending goal to close gripper...")
 
         # Send goal and update state
         self.gripper_action_client.send_goal_async(goal_msg)
@@ -332,7 +332,7 @@ class BaseArmController(Node):
 
         # Upper button: Toggle gripper
         if msg.button_upper and not self._button_upper_pressed_state:
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Upper button pressed. Toggling gripper...")
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] Upper button pressed. Toggling gripper...")
             self._toggle_gripper()
             
         # Update upper button press state
@@ -344,7 +344,7 @@ class BaseArmController(Node):
             self.allow_pose_update = not self.allow_pose_update
             
             state_msg = "ENABLED (publishing poses)" if self.allow_pose_update else "DISABLED (hold position)"
-            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Lower button pressed: pose streaming is now **{state_msg}**。")
+            self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] Lower button pressed: pose streaming is now **{state_msg}**。")
             
             robot_pos, robot_ori = self._get_robot_current_pose()
             
@@ -355,7 +355,7 @@ class BaseArmController(Node):
                 # Set robot anchor to the current EEF pose
                 self.initial_position = robot_pos
                 self.initial_orientation = robot_ori
-                self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_type.upper()} Arm] Robot anchor reset to current pose. ")
+                self.get_logger().info(f"[{self.arm_name.capitalize()} {self.robot_name.upper()} Arm] Robot anchor reset to current pose. ")
                 
                 # Force _pose_callback to re-anchor Quest on the next smoothed sample
                 self.initial_orientation = None 
