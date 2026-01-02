@@ -1,3 +1,29 @@
+"""
+Quest Simulator Node
+--------------------
+This node acts as a "Fake Quest," generating simulated controller data. 
+Use this to test your robot arm logic without needing to wear the VR headset.
+
+Simulation Behavior:
+- **Pose**: Moves the hand in a generic circle pattern (0.1m radius) in the X-Y plane.
+- **Inputs**: Holds 'button_lower' TRUE. Toggles 'button_upper' (Gripper) every 5 seconds.
+- **Twist**: Publishes velocity data corresponding to the circular movement.
+
+How to Run (Terminal):
+
+1. Default (Right Hand, All Topics):
+   $ ros2 run q2r2_bringup SimulationInput
+
+2. Simulate LEFT Hand:
+   $ ros2 run q2r2_bringup SimulationInput --ros-args -p side:=left
+
+3. Simulate Only Velocity (Twist) Mode:
+   $ ros2 run q2r2_bringup SimulationInput --ros-args -p mode:=velocity
+
+4. Simulate Left Hand with Only Teleop Data (Pose + Inputs):
+   $ ros2 run q2r2_bringup SimulationInput --ros-args -p side:=left -p mode:=teleop
+"""
+
 import rclpy
 from rclpy.node import Node
 import numpy as np

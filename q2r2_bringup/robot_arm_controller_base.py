@@ -19,12 +19,26 @@ from collections import deque
 class BaseArmController(Node):
     def __init__(self, arm_name: str,robot_name:str , mirror: bool, base_frame_id:str , filter_window_size: int , end_effector_link_name: str , ctrl_prefix: str , gripper_action_topic: str):
         """
-        Base class for controlling a robot arm using Quest 3 inputs.
+        Base class for controlling a robot arm using Quest3 inputs.
 
         Args:
-            arm_name (str): Arm name, e.g., 'left' or 'right', used for logging and distinction.
-            mirror (bool): If True, maps the opposite hand controller to the arm 
-                           (e.g., right hand controls left arm). Defaults to False.
+            arm_name (str): The identifier for this specific arm (e.g., 'left' or 'right'). 
+                            Used for internal logic and logging.
+            robot_name (str): The type of robot being controlled (e.g., 'kuka'). 
+                              Used primarily for logging purposes.
+            mirror (bool): If True, mirrors the input mapping (e.g., using the Right Quest 
+                           controller to drive the Left Robot arm). Useful for "face-to-face" 
+                           teleoperation or testing.
+            base_frame_id (str): The root reference frame of the robot (World Frame) in the TF tree 
+                                 (e.g., 'bh_robot_base'). All target poses will be calculated relative to this.
+            filter_window_size (int): The size of the moving average filter window. 
+                                      A larger number results in smoother motion but higher latency (lag).
+            end_effector_link_name (str): The exact link name of the robot's end-effector (hand) 
+                                          in the URDF/TF tree (e.g., 'left_arm_link_ee').
+            ctrl_prefix (str): The namespace/prefix for the specific Cartesian controller 
+                               (e.g., '/bh_robot/left_arm_clik_controller'). Used to construct the target topic.
+            gripper_action_topic (str): The full topic name for the gripper's Action Server 
+                                        (e.g., '/bh_robot/left_arm_gripper_action_controller/gripper_cmd').
         """
         #Initializing node
         node_name = f"{arm_name}_{robot_name}_arm_controller"
