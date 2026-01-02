@@ -64,7 +64,7 @@ https://github.com/user-attachments/assets/f153b410-1828-4f67-8ec8-fc7ae9254131
     - `ctrl_prefix`: namespace of the arm inverse kinematics controller
     - `gripper_action_topic`: action server topic for gripper control
     - `filter_window_size`: moving average filter size for motion smoothing
-    - `mirror`: whether to mirror controller input between two arms
+    - `mirror`: whether to mirror controller input between two arms, note this flag has to be the same for both `left_arm_controller.py` and `right_arm_controller.py`.
 
 7. Build your ROS2 Humble workspace:
 
@@ -148,6 +148,4 @@ Ensure your physical robot, RViz visualization, and motion controller are all ru
 
 - Lower Button : Toggles the robot arm movement (each press switches between enable and disable), and also pauses/resumes pose streaming while performing an Anchor Reset that snaps the virtual target back to the robot’s current position to prevent movement jumps due to kinematic limits or drift.
 
-### Change to "Mirror" Mode
-- Change the control mode to "Mirror" by set `self.mirror` to `True` in the `__init__` method of `BaseArmController` class inside `robot_arm_controller_base.py`. For more information please refer to the report.
 

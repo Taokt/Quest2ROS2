@@ -1,3 +1,28 @@
+"""
+Quest Monitor Node
+------------------
+A diagnostic tool for the Quest-to-ROS bridge. This node actively listens to all standard 
+controller topics (Pose, Inputs, Twist) for both Left and Right hands and prints a 
+clean, formatted summary to the terminal at 1Hz.
+
+Key Features:
+- **Universal Listening**: Automatically subscribes to all 6 potential topic combinations 
+  (Left/Right × Pose/Inputs/Twist).
+- **Smart Display**: Only prints data for topics that are currently active, keeping the 
+  terminal output clean.
+- **Connection Watchdog**: Monitors data flow and alerts you if the connection is lost 
+  (timeout > 2.0s) or if no topics are found.
+- **Rate Limiting**: Buffers high-frequency incoming data but only prints updates once 
+  per second to prevent terminal flooding.
+
+How to Run:
+    $ ros2 run q2r2_bringup CheckTCPconnection
+    
+Expected Output:
+    --- Quest Status [Hour:Minute:Second] ---
+    [LEFT_HAND_POSE]: Pos(0.50, 0.20, 0.30) | Ori(0.00, 0.00, 0.00, 1.00)
+    [LEFT_HAND_INPUTS]: Press Index: True | Press Grip: False | Joystick: (0.50, -0.10)
+"""
 import rclpy
 from rclpy.node import Node
 import time
@@ -28,7 +53,6 @@ class QuestMonitor(Node):
             for name, msg_type in self.topic_types.items():
                 topic_name = f"/q2r_{side}_hand_{name}"
                 
-                # We use a helper function to capture the specific topic name in the closure
                 self.create_subscribed_callback(msg_type, topic_name)
 
         # Create a timer to print status every 1 second
